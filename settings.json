@@ -1,0 +1,20 @@
+{
+  "history_csv_name": "条件履歴",
+  "fields": [
+    {"id": "datetime", "label": "日時", "type": "datetime", "required": true},
+    {"id": "program", "label": "プログラム", "type": "combo", "required": true,
+     "options": [], "history": true, "remember": true},
+    {"id": "board", "label": "基板", "type": "combo", "required": true,
+     "options": ["Rev.A", "Rev.B"], "history": true, "remember": true},
+    {"id": "board_state", "label": "基板状態", "type": "checkgroup",
+     "items": ["外枠", "線出し", "シャント抵抗"],
+     "on_text": "有", "off_text": "無", "separator": "、", "remember": true},
+    {"id": "method", "label": "充電・放電方式", "type": "select", "required": true,
+     "options": ["USB充電", "ワイヤレス充電", "連続測定モード"],
+     "other_option": "その他", "remember": true},
+    {"id": "datafile", "label": "データファイル", "type": "datafile"},
+    {"id": "note", "label": "備考", "type": "multiline", "rows": 5},
+    {"id": "measurer", "label": "測定者", "type": "combo", "required": true,
+     "options": [], "history": true, "remember": true, "blank_lines_before": 2}
+  ]
+}
