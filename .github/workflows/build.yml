@@ -1,0 +1,51 @@
+name: Build EvalMemo.exe
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # テスト → PyInstaller のインストール → exe 作成（dist\EvalMemo.exe, dist\settings.json）
+      - name: Build (build.bat)
+        shell: cmd
+        run: build.bat
+
+      # settings.json が無いフォルダで exe を起動し、起動できること・既定の settings.json が作られることを確認
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "smoke"
+          New-Item -ItemType Directory -Path $dir | Out-Null
+          Copy-Item dist\EvalMemo.exe $dir
+          $env:EVALMEMO_DATA_DIR = Join-Path $env:RUNNER_TEMP "smoke-data"
+          $p = Start-Process -FilePath (Join-Path $dir "EvalMemo.exe") -PassThru
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { throw "EvalMemo.exe が終了しました（終了コード $($p.ExitCode)）" }
+          Stop-Process -Id $p.Id -Force
+          $created = Get-Content -Raw -Encoding utf8 (Join-Path $dir "settings.json")
+          $bundled = Get-Content -Raw -Encoding utf8 settings.json
+          if ($created -ne $bundled) { throw "作成された settings.json が既定値と一致しません" }
+          Write-Host "OK: EvalMemo.exe が起動し、既定の settings.json が作成されました"
+
+      - name: Collect files
+        shell: cmd
+        run: copy /y README.md dist\README.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EvalMemo
+          path: |
+            dist/EvalMemo.exe
+            dist/settings.json
+            dist/README.md
+          if-no-files-found: error

@@ -232,7 +232,18 @@ py -3.12 -m unittest discover -s tests -t .
 
 画面のテスト（`tests/test_gui.py`）はディスプレイが無い環境では自動でスキップされます。
 
-### ビルド
+### exe のダウンロード（GitHub Actions）
+
+プッシュするたびに GitHub Actions（`.github/workflows/build.yml`）が Windows 上でテスト・exe 作成・起動確認を行います。
+
+1. GitHub のリポジトリ画面で「Actions」タブを開く
+2. 「Build EvalMemo.exe」の実行一覧から、対象ブランチの成功した（緑のチェックの）実行を開く
+3. ページ下部の「Artifacts」にある **EvalMemo** をクリックして zip をダウンロード
+4. zip の中の `EvalMemo.exe` と `settings.json` を同じフォルダに置いて配布する
+
+Artifacts の保存期間は 90 日です。「Run workflow」ボタンから手動で実行することもできます。
+
+### ビルド（手元の PC で行う場合）
 
 Windows 11 + Python 3.12 で `build.bat` を実行すると、テスト → PyInstaller のインストール → exe 作成を行い、
 `dist\EvalMemo.exe` と `dist\settings.json` ができます。この2ファイルを配布してください（Python のインストールは不要）。
