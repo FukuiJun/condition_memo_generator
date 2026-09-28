@@ -1,4 +1,4 @@
-"""状態ファイル（%APPDATA%\\EvalMemo\\state.json）（仕様書 5.2, F-02, F-09）
+"""状態ファイル（%APPDATA%\\MemoGenerator\\state.json）（仕様書 5.2, F-02, F-09）
 
 形式:
     {
@@ -37,15 +37,19 @@ def combo_candidates(field: FieldDef, history: list[str]) -> list[str]:
 
 
 class StateStore:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, legacy_path: Path | None = None):
         self.path = path
+        self.legacy_path = legacy_path  # path が無いときに代わりに読む旧ファイル（保存は常に path）
         self.data: dict = {}
 
     def load(self) -> str | None:
         """読み込む。無い・壊れている場合は空の状態にして理由を返す（エラーにはしない）。"""
         self.data = {}
+        source = self.path
+        if not source.exists() and self.legacy_path is not None and self.legacy_path.is_file():
+            source = self.legacy_path
         try:
-            text = self.path.read_text(encoding="utf-8")
+            text = source.read_text(encoding="utf-8")
         except FileNotFoundError:
             return None
         except (OSError, UnicodeDecodeError) as e:

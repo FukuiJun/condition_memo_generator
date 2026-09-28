@@ -24,7 +24,7 @@ def _enable_dpi_awareness() -> None:
 
 
 def main() -> None:
-    from .gui import EvalMemoApp, show_settings_errors
+    from .gui import MemoGeneratorApp, show_settings_errors
 
     _enable_dpi_awareness()
     root = tk.Tk()
@@ -43,12 +43,12 @@ def main() -> None:
     if loaded.errors:
         log_error("settings.json の検証エラー（既定値で起動）:\n" + "\n".join(loaded.errors))
 
-    state = StateStore(paths.state_path())
+    state = StateStore(paths.state_path(), paths.legacy_state_path())
     state_error = state.load()
     if state_error:
         log_error(state_error)
 
-    EvalMemoApp(root, loaded.settings, settings_file, state)
+    MemoGeneratorApp(root, loaded.settings, settings_file, state)
     if loaded.errors:
         root.after(200, lambda: show_settings_errors(root, loaded.errors, reload=False))
     root.mainloop()

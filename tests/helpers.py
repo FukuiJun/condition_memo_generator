@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from evalmemo.settings import default_settings, parse_settings  # noqa: E402
+from memogenerator.settings import default_settings, parse_settings  # noqa: E402
 
 DEFAULT = default_settings()
 
@@ -31,7 +31,7 @@ def settings_with_temp_field():
     """AC-16：備考の前に「周囲温度」を追加した設定"""
     import json
 
-    from evalmemo.settings import DEFAULT_SETTINGS_TEXT
+    from memogenerator.settings import DEFAULT_SETTINGS_TEXT
 
     data = json.loads(DEFAULT_SETTINGS_TEXT)
     idx = [f["id"] for f in data["fields"]].index("note")

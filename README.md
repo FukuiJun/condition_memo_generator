@@ -1,4 +1,4 @@
-# EvalMemo（評価条件メモ出力ソフト）
+# MemoGenerator（評価条件メモ出力ソフト）
 
 評価データを取得したときの条件（プログラム・基板・基板状態・測定条件など）を決まった項目で入力し、
 測定フォルダに次のファイルを出力します。
@@ -14,9 +14,9 @@
 ## 使い方
 
 1. 評価データを取得する
-2. `EvalMemo.exe` を起動する（前回の入力値が入った状態で開きます。日時は起動時刻）
+2. `MemoGenerator.exe` を起動する（前回の入力値が入った状態で開きます。日時は起動時刻）
 3. 「データファイル」の［参照］で測定データのファイルを選ぶ
-   → 保存先がそのファイルのフォルダに自動で変わります
+   → 保存先がそのファイルのフォルダに自動で変わります（変わったときは保存先が黄色で強調され、下のステータス欄にも表示されます）
 4. 変わった項目だけ修正する
 5. 出力形式を確認して［保存］（または **Ctrl+S**）
 
@@ -66,9 +66,9 @@
 
 | ファイル | 場所 |
 |---|---|
-| 設定ファイル | `EvalMemo.exe` と同じフォルダの `settings.json`（無ければ起動時に既定値で作成） |
-| 前回値・入力履歴・前回の保存先 | `%APPDATA%\EvalMemo\state.json`（PC・Windows ユーザーごと） |
-| エラーログ | `%APPDATA%\EvalMemo\error.log`（エラーが起きたときだけ追記） |
+| 設定ファイル | `MemoGenerator.exe` と同じフォルダの `settings.json`（無ければ起動時に既定値で作成） |
+| 前回値・入力履歴・前回の保存先 | `%APPDATA%\MemoGenerator\state.json`（PC・Windows ユーザーごと） |
+| エラーログ | `%APPDATA%\MemoGenerator\error.log`（エラーが起きたときだけ追記） |
 
 ---
 
@@ -80,7 +80,7 @@
 設定に誤りがあると、どの項目の何が不正かを一覧で表示します。
 起動時は既定の設定で起動し（settings.json は書き換えません）、再読み込み時は画面を変更前のままにします。
 
-チームで同じ設定を使うときは、編集した `settings.json` を `EvalMemo.exe` と一緒に配布してください。
+チームで同じ設定を使うときは、編集した `settings.json` を `MemoGenerator.exe` と一緒に配布してください。
 
 ### 全体の形
 
@@ -204,12 +204,13 @@
 
 | パス | 内容 |
 |---|---|
-| `src/EvalMemo.py` | 起動スクリプト（exe のエントリポイント） |
-| `src/evalmemo/settings.py` | 設定ファイルの定義・読み込み・検証 |
-| `src/evalmemo/values.py` | 入力値→出力値の変換、入力チェック |
-| `src/evalmemo/output.py` | 条件メモ・条件履歴の生成と保存（ロールバック含む） |
-| `src/evalmemo/state.py` | 状態ファイル（前回値・入力履歴・前回保存先） |
-| `src/evalmemo/gui.py` | 画面（tkinter） |
+| `src/MemoGenerator.py` | 起動スクリプト（exe のエントリポイント） |
+| `src/memogenerator/settings.py` | 設定ファイルの定義・読み込み・検証 |
+| `src/memogenerator/values.py` | 入力値→出力値の変換、入力チェック |
+| `src/memogenerator/output.py` | 条件メモ・条件履歴の生成と保存（ロールバック含む） |
+| `src/memogenerator/state.py` | 状態ファイル（前回値・入力履歴・前回保存先） |
+| `src/memogenerator/gui.py` | 画面（tkinter） |
+| `src/memogenerator/theme.py` | 画面デザイン「ラボノート」の色・フォント（見た目を変えるときはここだけ編集） |
 | `settings.json` | 既定の設定ファイル（exe と同梱） |
 | `build.bat` | exe のビルド |
 | `tests/` | 自動テスト |
@@ -220,11 +221,11 @@
 
 ```bat
 cd src
-py -3.12 EvalMemo.py
+py -3.12 MemoGenerator.py
 ```
 
-開発時の `settings.json` はリポジトリ直下のものを使います（環境変数 `EVALMEMO_APP_DIR` で変更可。
-`EVALMEMO_DATA_DIR` で state.json / error.log の場所も変更できます）。
+開発時の `settings.json` はリポジトリ直下のものを使います（環境変数 `MEMOGENERATOR_APP_DIR` で変更可。
+`MEMOGENERATOR_DATA_DIR` で state.json / error.log の場所も変更できます）。
 
 ```bat
 py -3.12 -m unittest discover -s tests -t .
@@ -237,13 +238,13 @@ py -3.12 -m unittest discover -s tests -t .
 プッシュするたびに GitHub Actions（`.github/workflows/build.yml`）が Windows 上でテスト・exe 作成・起動確認を行います。
 
 1. GitHub のリポジトリ画面で「Actions」タブを開く
-2. 「Build EvalMemo.exe」の実行一覧から、対象ブランチの成功した（緑のチェックの）実行を開く
-3. ページ下部の「Artifacts」にある **EvalMemo** をクリックして zip をダウンロード
-4. zip の中の `EvalMemo.exe` と `settings.json` を同じフォルダに置いて配布する
+2. 「Build MemoGenerator.exe」の実行一覧から、対象ブランチの成功した（緑のチェックの）実行を開く
+3. ページ下部の「Artifacts」にある **MemoGenerator** をクリックして zip をダウンロード
+4. zip の中の `MemoGenerator.exe` と `settings.json` を同じフォルダに置いて配布する
 
 Artifacts の保存期間は 90 日です。「Run workflow」ボタンから手動で実行することもできます。
 
 ### ビルド（手元の PC で行う場合）
 
 Windows 11 + Python 3.12 で `build.bat` を実行すると、テスト → PyInstaller のインストール → exe 作成を行い、
-`dist\EvalMemo.exe` と `dist\settings.json` ができます。この2ファイルを配布してください（Python のインストールは不要）。
+`dist\MemoGenerator.exe` と `dist\settings.json` ができます。この2ファイルを配布してください（Python のインストールは不要）。

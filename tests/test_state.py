@@ -5,9 +5,9 @@ from pathlib import Path
 
 from .helpers import DEFAULT, example_raw
 
-from evalmemo.settings import parse_settings
-from evalmemo.state import StateStore, combo_candidates, update_history
-from evalmemo.values import output_values
+from memogenerator.settings import parse_settings
+from memogenerator.state import StateStore, combo_candidates, update_history
+from memogenerator.values import output_values
 
 
 class HistoryTest(unittest.TestCase):
@@ -39,7 +39,7 @@ class HistoryTest(unittest.TestCase):
 class RememberTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
-        self.path = Path(self._tmp.name) / "EvalMemo" / "state.json"
+        self.path = Path(self._tmp.name) / "MemoGenerator" / "state.json"
 
     def tearDown(self):
         self._tmp.cleanup()
@@ -100,12 +100,28 @@ class RememberTest(unittest.TestCase):
                 self.assertEqual(store.history("program"), [])
                 self.assertEqual(store.last_folder, "")
 
+    def test_legacy_state_is_read_when_new_is_missing(self):
+        legacy = Path(self._tmp.name) / "EvalMemo" / "state.json"
+        legacy.parent.mkdir(parents=True)
+        legacy.write_text(json.dumps({"values": {"program": "ver0.9"}, "last_folder": "C:/x"}),
+                          encoding="utf-8")
+        store = StateStore(self.path, legacy)
+        self.assertIsNone(store.load())
+        self.assertEqual(store.remembered(DEFAULT.field("program")), "ver0.9")
+        store.save()  # 保存は新しい場所へ
+        self.assertTrue(self.path.is_file())
+        # 新しい state.json があれば旧ファイルは読まない
+        legacy.write_text(json.dumps({"values": {"program": "old"}}), encoding="utf-8")
+        store = StateStore(self.path, legacy)
+        store.load()
+        self.assertEqual(store.remembered(DEFAULT.field("program")), "ver0.9")
+
     def test_missing_state_is_not_an_error(self):
         self.assertIsNone(StateStore(self.path).load())
 
 
 def DEFAULT_TEXT():
-    from evalmemo.settings import DEFAULT_SETTINGS_TEXT
+    from memogenerator.settings import DEFAULT_SETTINGS_TEXT
 
     return DEFAULT_SETTINGS_TEXT
 

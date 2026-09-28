@@ -1,4 +1,4 @@
-name: Build EvalMemo.exe
+name: Build MemoGenerator.exe
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      # テスト → PyInstaller のインストール → exe 作成（dist\EvalMemo.exe, dist\settings.json）
+      # テスト → PyInstaller のインストール → exe 作成（dist\MemoGenerator.exe, dist\settings.json）
       - name: Build (build.bat)
         shell: cmd
         run: build.bat
@@ -26,16 +26,16 @@ jobs:
         run: |
           $dir = Join-Path $env:RUNNER_TEMP "smoke"
           New-Item -ItemType Directory -Path $dir | Out-Null
-          Copy-Item dist\EvalMemo.exe $dir
-          $env:EVALMEMO_DATA_DIR = Join-Path $env:RUNNER_TEMP "smoke-data"
-          $p = Start-Process -FilePath (Join-Path $dir "EvalMemo.exe") -PassThru
+          Copy-Item dist\MemoGenerator.exe $dir
+          $env:MEMOGENERATOR_DATA_DIR = Join-Path $env:RUNNER_TEMP "smoke-data"
+          $p = Start-Process -FilePath (Join-Path $dir "MemoGenerator.exe") -PassThru
           Start-Sleep -Seconds 15
-          if ($p.HasExited) { throw "EvalMemo.exe が終了しました（終了コード $($p.ExitCode)）" }
+          if ($p.HasExited) { throw "MemoGenerator.exe が終了しました（終了コード $($p.ExitCode)）" }
           Stop-Process -Id $p.Id -Force
           $created = Get-Content -Raw -Encoding utf8 (Join-Path $dir "settings.json")
           $bundled = Get-Content -Raw -Encoding utf8 settings.json
           if ($created -ne $bundled) { throw "作成された settings.json が既定値と一致しません" }
-          Write-Host "OK: EvalMemo.exe が起動し、既定の settings.json が作成されました"
+          Write-Host "OK: MemoGenerator.exe が起動し、既定の settings.json が作成されました"
 
       - name: Collect files
         shell: cmd
@@ -43,9 +43,9 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: EvalMemo
+          name: MemoGenerator
           path: |
-            dist/EvalMemo.exe
+            dist/MemoGenerator.exe
             dist/settings.json
             dist/README.md
           if-no-files-found: error

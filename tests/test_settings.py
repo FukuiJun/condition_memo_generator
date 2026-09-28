@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .helpers import ROOT
 
-from evalmemo.settings import (
+from memogenerator.settings import (
     DEFAULT_SETTINGS_TEXT,
     SettingsError,
     load_settings,

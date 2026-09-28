@@ -5,9 +5,9 @@ from unittest import mock
 
 from .helpers import DEFAULT, example_raw, settings_with_temp_field
 
-from evalmemo import output
-from evalmemo.output import SaveCancelled, SaveError, build_txt, save_outputs, txt_base_name
-from evalmemo.values import output_values, validate_input
+from memogenerator import output
+from memogenerator.output import SaveCancelled, SaveError, build_txt, save_outputs, txt_base_name
+from memogenerator.values import output_values, validate_input
 
 BOM = b"\xef\xbb\xbf"
 
@@ -181,7 +181,7 @@ class CsvTest(TempDirTest):
     def test_custom_history_csv_name(self):
         import json
 
-        from evalmemo.settings import DEFAULT_SETTINGS_TEXT, parse_settings
+        from memogenerator.settings import DEFAULT_SETTINGS_TEXT, parse_settings
 
         data = json.loads(DEFAULT_SETTINGS_TEXT)
         data["history_csv_name"] = "history"
