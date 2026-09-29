@@ -92,6 +92,9 @@ class GuiTest(unittest.TestCase):
         self.assertEqual((self.app_dir / "settings.json").read_text(encoding="utf-8"), DEFAULT_SETTINGS_TEXT)
         self.assertEqual(list(self.app.widgets), [f.id for f in DEFAULT.fields])
         self.assertEqual(self.root.title(), "MemoGenerator v1.0.0")
+        # ウィンドウのアイコン（256/48/32/16px）
+        self.assertEqual([(i.width(), i.height()) for i in self.app._icon_images],
+                         [(256, 256), (48, 48), (32, 32), (16, 16)])
         program = self.app.widgets["program"]
         self.assertEqual(program.label.cget("text"), "プログラム")
         self.assertEqual(program.required_mark.cget("text"), " *")  # 必須の印

@@ -211,6 +211,10 @@
 | `src/memogenerator/state.py` | 状態ファイル（前回値・入力履歴・前回保存先） |
 | `src/memogenerator/gui.py` | 画面（tkinter） |
 | `src/memogenerator/theme.py` | 画面デザイン「ラボノート」の色・フォント（見た目を変えるときはここだけ編集） |
+| `src/memogenerator/icon_data.py` | ウィンドウのアイコン画像（`tools/make_icon.py` が生成。直接編集しない） |
+| `assets/icon.svg`, `assets/icon-small.svg` | アプリアイコンの原画（24px 以下は small の方を使う） |
+| `assets/MemoGenerator.ico` | exe のアイコン（`tools/make_icon.py` が生成） |
+| `tools/make_icon.py` | SVG からアイコン（.ico と埋め込み用 PNG）を作るツール |
 | `settings.json` | 既定の設定ファイル（exe と同梱） |
 | `build.bat` | exe のビルド |
 | `tests/` | 自動テスト |
@@ -243,6 +247,18 @@ py -3.12 -m unittest discover -s tests -t .
 4. zip の中の `MemoGenerator.exe` と `settings.json` を同じフォルダに置いて配布する
 
 Artifacts の保存期間は 90 日です。「Run workflow」ボタンから手動で実行することもできます。
+
+### アイコンの変更
+
+アイコンは「ペン立て付きのメモ帳」（リング綴じのメモ帳とペン立て）です。変えるときは `assets/icon.svg`
+（小さいサイズ用は `assets/icon-small.svg`）を編集し、次を実行して `.ico` と埋め込み用の画像を作り直してコミットします。
+
+```bat
+py -3.12 -m pip install cairosvg pillow
+py -3.12 tools\make_icon.py
+```
+
+（cairosvg と Pillow はこのツールでのみ使います。アプリ本体・ビルドには不要です）
 
 ### ビルド（手元の PC で行う場合）
 

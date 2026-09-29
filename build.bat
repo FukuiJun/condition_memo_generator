@@ -16,7 +16,7 @@ echo [2/3] Installing PyInstaller
 %PY% -m pip install --upgrade pyinstaller || goto :error
 
 echo [3/3] Building MemoGenerator.exe
-%PY% -m PyInstaller --noconfirm --clean --onefile --windowed --name MemoGenerator --paths src --distpath dist --workpath build src\MemoGenerator.py || goto :error
+%PY% -m PyInstaller --noconfirm --clean --onefile --windowed --name MemoGenerator --icon assets\MemoGenerator.ico --paths src --distpath dist --workpath build src\MemoGenerator.py || goto :error
 copy /y settings.json dist\settings.json || goto :error
 
 echo.

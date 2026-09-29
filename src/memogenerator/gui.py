@@ -9,7 +9,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from . import APP_NAME, __version__, theme
+from . import APP_NAME, __version__, icon_data, theme
 from .errorlog import log_error
 from .output import SaveCancelled, SaveError, save_outputs
 from .settings import FieldDef, Settings, SettingsError, read_settings_file, write_default_settings
@@ -267,6 +267,7 @@ class MemoGeneratorApp:
         self.widgets: dict[str, FieldWidget] = {}
 
         root.title(f"{APP_NAME} v{__version__}")
+        self._set_window_icon()
         self.scale = max(1.0, root.winfo_fpixels("1i") / 96.0)
         self.fonts = theme.apply_theme(root)
         self._folder_flash_job = None
@@ -281,6 +282,16 @@ class MemoGeneratorApp:
         root.after_idle(self._fit_window)
 
     # ------------------------------------------------------------ 画面の組み立て
+
+    def _set_window_icon(self):
+        """タイトルバー・タスクバーのアイコン（exe 自体のアイコンは build.bat の --icon で設定）"""
+        try:
+            images = [tk.PhotoImage(master=self.root, data=data, format="png")
+                      for data in icon_data.PNG_BASE64.values()]
+            self.root.iconphoto(True, *images)
+            self._icon_images = images  # 画像が破棄されないよう保持
+        except tk.TclError as e:
+            log_error("ウィンドウのアイコンを設定できませんでした", e)
 
     def _build_menu(self):
         menubar = tk.Menu(self.root)
