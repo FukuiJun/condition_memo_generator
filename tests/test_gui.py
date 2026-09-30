@@ -93,7 +93,9 @@ class GuiTest(unittest.TestCase):
     def test_ac01_default_screen(self):
         self.assertEqual((self.app_dir / "settings.json").read_text(encoding="utf-8"), DEFAULT_SETTINGS_TEXT)
         self.assertEqual(list(self.app.widgets), [f.id for f in DEFAULT.fields])
-        self.assertEqual(self.root.title(), "MemoGenerator v1.0.0")
+        from memogenerator import __version__
+
+        self.assertEqual(self.root.title(), f"MemoGenerator v{__version__}")
         # ウィンドウのアイコン（256/48/32/16px）
         self.assertEqual([(i.width(), i.height()) for i in self.app._icon_images],
                          [(256, 256), (48, 48), (32, 32), (16, 16)])

@@ -5,6 +5,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# タグ（vX.Y.Z）のときに Release を作ってファイルを添付するため
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -65,3 +69,39 @@ jobs:
           name: MemoGenerator
           path: dist/MemoGenerator/
           if-no-files-found: error
+
+      # タグ vX.Y.Z をプッシュしたときだけ：Releases に MemoGenerator-vX.Y.Z.zip を載せる
+      # （zip を展開すると MemoGenerator フォルダができる）
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = (Select-String -Path src\memogenerator\__init__.py -Pattern '__version__ = "([^"]+)"').Matches[0].Groups[1].Value
+          if ($tag -ne "v$version") {
+            throw "タグ $tag と src\memogenerator\__init__.py の __version__ ($version) が一致しません。__version__ を v を除いたタグと同じ値にしてください"
+          }
+          $zip = "MemoGenerator-$tag.zip"
+          Compress-Archive -Path dist\MemoGenerator -DestinationPath $zip
+          $notes = @"
+          ## ダウンロードと導入
+          1. 下の **$zip** をダウンロード（「Source code」はソースコードで、exe は入っていません）
+          2. zip を右クリック →「すべて展開」→ できた **MemoGenerator フォルダをフォルダごと** 好きな場所に置く
+          3. フォルダ内の MemoGenerator.exe を起動（Python のインストールは不要）
+
+          - exe だけを別の場所にコピーしても動きません（_internal フォルダが必要）。デスクトップから起動したい場合はショートカットを作ってください
+          - 以前の版から更新する場合は、settings.json も新しいものに置き換えてください（項目を独自に変更している場合は差分を反映）
+
+          詳しくは同梱の README.md を参照してください。
+          "@
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            # 画面からリリースを先に作った場合など：既存のリリースに添付する
+            gh release upload $tag $zip --clobber
+          } else {
+            gh release create $tag $zip --title "MemoGenerator $tag" --notes $notes --verify-tag
+          }
+          if ($LASTEXITCODE -ne 0) { throw "リリースの作成・添付に失敗しました" }
+          Write-Host "Release: https://github.com/${{ github.repository }}/releases/tag/$tag"

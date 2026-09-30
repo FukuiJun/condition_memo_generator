@@ -11,6 +11,12 @@
 
 ---
 
+## ダウンロード
+
+GitHub のリポジトリ画面右側の **Releases** から最新版を開き、`MemoGenerator-vX.Y.Z.zip` をダウンロードします
+（同じ場所にある「Source code」はソースコードで、exe は入っていません）。
+zip を右クリック →「すべて展開」すると `MemoGenerator` フォルダができます。
+
 ## 導入
 
 `MemoGenerator` フォルダ（中に `MemoGenerator.exe`・`settings.json`・`_internal` フォルダ）を、**フォルダごと**
@@ -272,10 +278,22 @@ py -3.12 -m unittest discover -s tests -t .
 
 画面のテスト（`tests/test_gui.py`）はディスプレイが無い環境では自動でスキップされます。
 
-### exe のダウンロード（GitHub Actions）
+### リリース（配布版）の作り方
+
+バージョンを決めて配布するときは、次の手順で GitHub の Releases に `MemoGenerator-vX.Y.Z.zip` が自動で載ります。
+
+1. `src/memogenerator/__init__.py` の `__version__` を新しい番号（例：`1.5.0`）にしてコミット・プッシュ
+2. そのコミットに `v` を付けたタグを付けてプッシュ（`git tag v1.5.0` → `git push origin v1.5.0`）。
+   GitHub の画面で Releases →「Draft a new release」からタグ `v1.5.0` を作ってもかまいません
+3. GitHub Actions がテスト・ビルド・起動確認のあと、リリース `v1.5.0` を作って zip を添付します
+
+タグと `__version__` が一致しないとリリースは作られず、Actions が失敗します（別の版の exe を配らないため）。
+
+### 開発中の版のダウンロード（GitHub Actions）
 
 プッシュするたびに GitHub Actions（`.github/workflows/build.yml`）が Windows 上でテスト・exe 作成・起動確認
 （起動からウィンドウ表示までの時間の計測を含む。結果はログの「Smoke test and startup time」に出ます）を行います。
+リリース前の版を試すときは、次の手順で取得できます。
 
 1. GitHub のリポジトリ画面で「Actions」タブを開く
 2. 「Build MemoGenerator.exe」の実行一覧から、対象ブランチの成功した（緑のチェックの）実行を開く
