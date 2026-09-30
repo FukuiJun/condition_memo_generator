@@ -15,37 +15,81 @@ jobs:
         with:
           python-version: "3.12"
 
-      # テスト → PyInstaller のインストール → exe 作成（dist\MemoGenerator.exe, dist\settings.json）
+      # テスト → PyInstaller のインストール → フォルダ形式でビルド（dist\MemoGenerator\）
       - name: Build (build.bat)
         shell: cmd
         run: build.bat
 
-      # settings.json が無いフォルダで exe を起動し、起動できること・既定の settings.json が作られることを確認
-      - name: Smoke test
+      # settings.json が無い状態で起動できること・既定の settings.json が作られることを確認し、
+      # 起動からウィンドウ表示までの時間を3回測る（1回目はウイルス対策ソフトの初回スキャン込み）
+      - name: Smoke test and startup time
         shell: pwsh
         run: |
-          $dir = Join-Path $env:RUNNER_TEMP "smoke"
-          New-Item -ItemType Directory -Path $dir | Out-Null
-          Copy-Item dist\MemoGenerator.exe $dir
+          $dir = Join-Path $env:RUNNER_TEMP "smoke\MemoGenerator"
+          New-Item -ItemType Directory -Path (Split-Path $dir) | Out-Null
+          Copy-Item dist\MemoGenerator $dir -Recurse
+          Remove-Item (Join-Path $dir "settings.json")
           $env:MEMOGENERATOR_DATA_DIR = Join-Path $env:RUNNER_TEMP "smoke-data"
-          $p = Start-Process -FilePath (Join-Path $dir "MemoGenerator.exe") -PassThru
-          Start-Sleep -Seconds 15
-          if ($p.HasExited) { throw "MemoGenerator.exe が終了しました（終了コード $($p.ExitCode)）" }
-          Stop-Process -Id $p.Id -Force
+          $exe = Join-Path $dir "MemoGenerator.exe"
+          $times = @()
+          for ($i = 1; $i -le 3; $i++) {
+            $ready = Join-Path $env:RUNNER_TEMP "ready-$i.txt"
+            $env:MEMOGENERATOR_READY_FILE = $ready
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            $p = Start-Process -FilePath $exe -PassThru
+            while (-not (Test-Path $ready)) {
+              if ($p.HasExited) { throw "MemoGenerator.exe が終了しました（終了コード $($p.ExitCode)）" }
+              if ($sw.Elapsed.TotalSeconds -gt 60) { throw "60秒たってもウィンドウが表示されません" }
+              Start-Sleep -Milliseconds 20
+            }
+            $sw.Stop()
+            $times += $sw.Elapsed.TotalSeconds
+            Start-Sleep -Seconds 1
+            if ($p.HasExited) { throw "MemoGenerator.exe が表示直後に終了しました" }
+            Stop-Process -Id $p.Id -Force
+            $p.WaitForExit()
+          }
           $created = Get-Content -Raw -Encoding utf8 (Join-Path $dir "settings.json")
           $bundled = Get-Content -Raw -Encoding utf8 settings.json
           if ($created -ne $bundled) { throw "作成された settings.json が既定値と一致しません" }
-          Write-Host "OK: MemoGenerator.exe が起動し、既定の settings.json が作成されました"
+          Write-Host "OK: 起動でき、既定の settings.json が作成されました"
+          Write-Host ("起動時間（フォルダ形式、ウィンドウ表示まで）: " + (($times | ForEach-Object { "{0:N2}秒" -f $_ }) -join " / "))
+
+      # 参考：従来の1ファイル形式（onefile）で同じ計測をして比較する（配布物には含めない）
+      - name: Reference - onefile startup time
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          python -m PyInstaller --noconfirm --onefile --windowed --name MemoGenerator --icon assets\MemoGenerator.ico --paths src --distpath onefile-dist --workpath onefile-build src\MemoGenerator.py | Out-Null
+          $dir = Join-Path $env:RUNNER_TEMP "onefile"
+          New-Item -ItemType Directory -Path $dir | Out-Null
+          Copy-Item onefile-dist\MemoGenerator.exe $dir
+          Copy-Item settings.json $dir
+          $env:MEMOGENERATOR_DATA_DIR = Join-Path $env:RUNNER_TEMP "onefile-data"
+          $times = @()
+          for ($i = 1; $i -le 3; $i++) {
+            $ready = Join-Path $env:RUNNER_TEMP "onefile-ready-$i.txt"
+            $env:MEMOGENERATOR_READY_FILE = $ready
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            $p = Start-Process -FilePath (Join-Path $dir "MemoGenerator.exe") -PassThru
+            while (-not (Test-Path $ready)) {
+              if ($sw.Elapsed.TotalSeconds -gt 60) { throw "timeout" }
+              Start-Sleep -Milliseconds 20
+            }
+            $sw.Stop()
+            $times += $sw.Elapsed.TotalSeconds
+            Stop-Process -Id $p.Id -Force
+            $p.WaitForExit()
+          }
+          Write-Host ("起動時間（1ファイル形式、参考）: " + (($times | ForEach-Object { "{0:N2}秒" -f $_ }) -join " / "))
 
       - name: Collect files
         shell: cmd
-        run: copy /y README.md dist\README.md
+        run: copy /y README.md dist\MemoGenerator\README.md
 
+      # zip の中身：MemoGenerator.exe・settings.json・README.md・_internal フォルダ
       - uses: actions/upload-artifact@v4
         with:
           name: MemoGenerator
-          path: |
-            dist/MemoGenerator.exe
-            dist/settings.json
-            dist/README.md
+          path: dist/MemoGenerator/
           if-no-files-found: error

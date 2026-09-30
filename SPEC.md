@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 |---|---|
-| バージョン | 1.2 |
+| バージョン | 1.3 |
 | 作成日 / 更新日 | 2026-09-28 / 2026-09-28 |
 | ステータス | 確定 |
 
@@ -48,8 +48,8 @@
 | OS | Windows 11 | |
 | 言語・バージョン | Python 3.12 | |
 | 主要ライブラリ | 標準ライブラリのみ（tkinter + ttk, csv, json, pathlib, datetime） | 追加ライブラリは PyInstaller（ビルド時のみ）|
-| 配布形態 | PyInstaller の onefile で `MemoGenerator.exe` 1ファイル＋`settings.json` | コンソール窓なし |
-| その他制約 | Python 未インストールの PC で exe 単体で起動すること | |
+| 配布形態 | PyInstaller の onedir（フォルダ形式）で `MemoGenerator` フォルダ（`MemoGenerator.exe`＋`settings.json`＋`_internal`）| コンソール窓なし。起動を速くするため onefile は使わない（1.3 で変更）|
+| その他制約 | Python 未インストールの PC で `MemoGenerator` フォルダだけで起動すること | |
 
 ## 5. 外部インタフェース
 ### 5.1 ハードウェア・通信
@@ -279,7 +279,7 @@ PC・Windows ユーザーごとに保持する。
 - `src/`：ソースコード
 - `settings.json`：既定の設定ファイル（exe と同梱）
 - `build.bat`：exe をビルドするバッチ
-- `dist/MemoGenerator.exe`：ビルド成果物
+- `dist/MemoGenerator/`：ビルド成果物（`MemoGenerator.exe`・`settings.json`・`_internal`。フォルダごと配布）
 - `README.md`：使い方、設定ファイルの書き方（type ごとの記述例）、ビルド手順
 - `tests/`：自動テスト
 
@@ -306,7 +306,7 @@ PC・Windows ユーザーごとに保持する。
 | AC-18 | settings.json で id を重複させる／datetime を2つにする／未知の type を書く → それぞれ違反内容がダイアログに出て既定値で起動する | 自動（検証）＋手動 | F-01 |
 | AC-19 | 条件履歴.csv を Excel で開いたまま CSV＋TXT で保存 → 再試行ダイアログ。キャンセルで .txt も残らない。閉じて再試行で両方保存される | 手動 | F-09 |
 | AC-20 | Ctrl+S で保存ボタンと同じ動作をする | 手動 | 7章 |
-| AC-21 | Python 未インストールの Windows 11 PC で MemoGenerator.exe が起動し、AC-02 と同じ出力ができる | 手動（実機）| 4章 |
+| AC-21 | Python 未インストールの Windows 11 PC で `MemoGenerator` フォルダの MemoGenerator.exe が起動し、AC-02 と同じ出力ができる | 手動（実機）| 4章 |
 
 ## 12. 実装順序（マイルストーン）
 1. **M1：設定と出力の骨格** — settings.json の読み込み・検証、入力値（辞書）から .txt / .csv を生成する処理、CSV ファイル決定手順。GUI なしで自動テスト（AC-02, 03, 05, 06, 09, 11, 12, 15 の出力部分, 17 のファイル決定, 18 の検証）
@@ -334,7 +334,7 @@ PC・Windows ユーザーごとに保持する。
 | Q-13 | 出力形式は「どちらか一方」か「両方も可」か | 仮定 | 両方も可 |
 | Q-14 | 充電・放電方式の欄の構成と「その他」の出力 | 決定 | 1.2 で「試験概要」（プリセット無しの combo、過去の入力を候補表示）に置き換え。select 型と「その他」の機能は設定で使えるよう残す |
 | Q-15 | 設定の編集方法 | 仮定 | JSON 手編集＋README の記述例 |
-| Q-16 | settings.json をチーム共通にする方法 | 仮定 | exe と同じフォルダに置き、exe と一緒に配布する |
+| Q-16 | settings.json をチーム共通にする方法 | 仮定 | `MemoGenerator` フォルダ（exe と同じフォルダ）に置き、フォルダごと配布する |
 
 ## 14. 用語集
 | 用語 | 意味 |
@@ -356,3 +356,4 @@ PC・Windows ユーザーごとに保持する。
 | 1.0 | 2026-09-28 | 確定。残りの仮定事項（Q-01, Q-08〜Q-16）は暫定の扱いのとおり実装する |
 | 1.1 | 2026-09-28 | ソフト名を EvalMemo から MemoGenerator に変更（Q-01 決定）。状態ファイルの場所も `%APPDATA%\MemoGenerator` に変更（旧 `%APPDATA%\EvalMemo\state.json` があれば初回に引き継ぐ）|
 | 1.2 | 2026-09-29 | 既定の項目を変更：「日時」→「日付」（`YYYY-MM-DD`、ボタンは「今日」。datetime 型に with_time 属性を追加）、基板状態の「外枠」→「筐体」、「充電・放電方式」（select）→「試験概要」（プリセット無しの combo＋入力履歴）。datafile 未選択時の条件メモ名を `<YYYYMMDD>_条件メモ.txt` に。関連する 5.2 の例・F-02/F-03/F-06/F-07/F-09・7章・AC-06/07/12/14 を更新 |
+| 1.3 | 2026-09-30 | 起動高速化のため配布形態を onefile から onedir（フォルダ形式）に変更（4章・10章・AC-21・Q-16）。アプリアイコンの背景を透明に |

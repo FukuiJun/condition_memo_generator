@@ -11,6 +11,15 @@
 
 ---
 
+## 導入
+
+`MemoGenerator` フォルダ（中に `MemoGenerator.exe`・`settings.json`・`_internal` フォルダ）を、**フォルダごと**
+好きな場所（例：`C:\Tools\MemoGenerator`）に置きます。Python のインストールは不要です。
+
+- `MemoGenerator.exe` だけを別の場所にコピーしても動きません（`_internal` フォルダが必要です）。
+  デスクトップ等から起動したいときは、exe を右クリック →「ショートカットの作成」でショートカットを置いてください。
+- 起動を速くするため、1ファイルの exe ではなくフォルダ形式にしています（1ファイル形式は起動のたびに中身を一時フォルダへ展開するため遅い）。
+
 ## 使い方
 
 1. 評価データを取得する
@@ -81,7 +90,7 @@
 設定に誤りがあると、どの項目の何が不正かを一覧で表示します。
 起動時は既定の設定で起動し（settings.json は書き換えません）、再読み込み時は画面を変更前のままにします。
 
-チームで同じ設定を使うときは、編集した `settings.json` を `MemoGenerator.exe` と一緒に配布してください。
+チームで同じ設定を使うときは、編集した `settings.json` を `MemoGenerator` フォルダに入れて配布してください。
 
 ### 全体の形
 
@@ -231,7 +240,7 @@
 | `assets/MemoGenerator.ico` | exe のアイコン（`tools/make_icon.py` が生成） |
 | `tools/make_icon.py` | SVG からアイコン（.ico と埋め込み用 PNG）を作るツール |
 | `settings.json` | 既定の設定ファイル（exe と同梱） |
-| `build.bat` | exe のビルド |
+| `build.bat` | exe のビルド（フォルダ形式） |
 | `tests/` | 自動テスト |
 
 外部ライブラリは使っていません（Python 3.12 標準ライブラリのみ。ビルド時のみ PyInstaller）。
@@ -254,12 +263,13 @@ py -3.12 -m unittest discover -s tests -t .
 
 ### exe のダウンロード（GitHub Actions）
 
-プッシュするたびに GitHub Actions（`.github/workflows/build.yml`）が Windows 上でテスト・exe 作成・起動確認を行います。
+プッシュするたびに GitHub Actions（`.github/workflows/build.yml`）が Windows 上でテスト・exe 作成・起動確認
+（起動からウィンドウ表示までの時間の計測を含む。結果はログの「Smoke test and startup time」に出ます）を行います。
 
 1. GitHub のリポジトリ画面で「Actions」タブを開く
 2. 「Build MemoGenerator.exe」の実行一覧から、対象ブランチの成功した（緑のチェックの）実行を開く
 3. ページ下部の「Artifacts」にある **MemoGenerator** をクリックして zip をダウンロード
-4. zip の中の `MemoGenerator.exe` と `settings.json` を同じフォルダに置いて配布する
+4. zip を右クリック →「すべて展開」すると `MemoGenerator` フォルダができるので、フォルダごと配布する（上の「導入」参照）
 
 Artifacts の保存期間は 90 日です。「Run workflow」ボタンから手動で実行することもできます。
 
@@ -278,4 +288,7 @@ py -3.12 tools\make_icon.py
 ### ビルド（手元の PC で行う場合）
 
 Windows 11 + Python 3.12 で `build.bat` を実行すると、テスト → PyInstaller のインストール → exe 作成を行い、
-`dist\MemoGenerator.exe` と `dist\settings.json` ができます。この2ファイルを配布してください（Python のインストールは不要）。
+`dist\MemoGenerator` フォルダ（`MemoGenerator.exe`・`settings.json`・`_internal`）ができます。このフォルダごと配布してください。
+
+環境変数 `MEMOGENERATOR_READY_FILE` にファイルパスを設定して起動すると、ウィンドウが表示された時点でそのファイルを作ります
+（起動時間の計測用。GitHub Actions で使用）。

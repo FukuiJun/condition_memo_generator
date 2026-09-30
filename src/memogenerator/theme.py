@@ -47,10 +47,14 @@ class Fonts:
     button: tkfont.Font
 
 
+def _font_exists(root: tk.Misc, family: str) -> bool:
+    # 全フォント一覧（tkfont.families）の取得はフォントが多い PC で遅いので、候補ごとに確かめる
+    return tkfont.Font(root=root, family=family).actual("family") == family
+
+
 def _setup_fonts(root: tk.Misc) -> Fonts:
     default = tkfont.nametofont("TkDefaultFont", root=root)
-    available = set(tkfont.families(root))
-    family = next((f for f in FONT_CANDIDATES if f in available), default.actual("family"))
+    family = next((f for f in FONT_CANDIDATES if _font_exists(root, f)), default.actual("family"))
     size = 10
     for name in ("TkDefaultFont", "TkTextFont", "TkMenuFont", "TkHeadingFont"):
         try:

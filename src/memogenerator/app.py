@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import tkinter as tk
 from tkinter import messagebox
@@ -51,4 +52,22 @@ def main() -> None:
     MemoGeneratorApp(root, loaded.settings, settings_file, state)
     if loaded.errors:
         root.after(200, lambda: show_settings_errors(root, loaded.errors, reload=False))
+    _signal_ready_for_timing(root)
     root.mainloop()
+
+
+def _signal_ready_for_timing(root: tk.Tk) -> None:
+    """起動時間の計測用（CI）。環境変数 MEMOGENERATOR_READY_FILE があれば、画面が出た時点でそのファイルを作る。"""
+    ready_file = os.environ.get("MEMOGENERATOR_READY_FILE")
+    if not ready_file:
+        return
+
+    def write():
+        try:
+            with open(ready_file, "w", encoding="utf-8") as fp:
+                fp.write("ready\n")
+        except OSError:
+            pass
+
+    # 画面の組み立て（after_idle で予約済み）が終わって描画された後に書く
+    root.after_idle(lambda: root.after(1, write))
