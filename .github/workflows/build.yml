@@ -55,34 +55,6 @@ jobs:
           Write-Host "OK: 起動でき、既定の settings.json が作成されました"
           Write-Host ("起動時間（フォルダ形式、ウィンドウ表示まで）: " + (($times | ForEach-Object { "{0:N2}秒" -f $_ }) -join " / "))
 
-      # 参考：従来の1ファイル形式（onefile）で同じ計測をして比較する（配布物には含めない）
-      - name: Reference - onefile startup time
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          python -m PyInstaller --noconfirm --onefile --windowed --name MemoGenerator --icon assets\MemoGenerator.ico --paths src --distpath onefile-dist --workpath onefile-build src\MemoGenerator.py | Out-Null
-          $dir = Join-Path $env:RUNNER_TEMP "onefile"
-          New-Item -ItemType Directory -Path $dir | Out-Null
-          Copy-Item onefile-dist\MemoGenerator.exe $dir
-          Copy-Item settings.json $dir
-          $env:MEMOGENERATOR_DATA_DIR = Join-Path $env:RUNNER_TEMP "onefile-data"
-          $times = @()
-          for ($i = 1; $i -le 3; $i++) {
-            $ready = Join-Path $env:RUNNER_TEMP "onefile-ready-$i.txt"
-            $env:MEMOGENERATOR_READY_FILE = $ready
-            $sw = [Diagnostics.Stopwatch]::StartNew()
-            $p = Start-Process -FilePath (Join-Path $dir "MemoGenerator.exe") -PassThru
-            while (-not (Test-Path $ready)) {
-              if ($sw.Elapsed.TotalSeconds -gt 60) { throw "timeout" }
-              Start-Sleep -Milliseconds 20
-            }
-            $sw.Stop()
-            $times += $sw.Elapsed.TotalSeconds
-            Stop-Process -Id $p.Id -Force
-            $p.WaitForExit()
-          }
-          Write-Host ("起動時間（1ファイル形式、参考）: " + (($times | ForEach-Object { "{0:N2}秒" -f $_ }) -join " / "))
-
       - name: Collect files
         shell: cmd
         run: copy /y README.md dist\MemoGenerator\README.md

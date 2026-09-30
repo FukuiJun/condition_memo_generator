@@ -15,6 +15,7 @@ DEFAULT_SETTINGS_TEXT = """\
   "history_csv_name": "条件履歴",
   "fields": [
     {"id": "date", "label": "日付", "type": "datetime", "required": true},
+    {"id": "time", "label": "測定時刻", "type": "time"},
     {"id": "program", "label": "プログラム", "type": "combo", "required": true,
      "options": [], "history": true, "remember": true},
     {"id": "board", "label": "基板", "type": "combo", "required": true,
@@ -35,7 +36,7 @@ DEFAULT_SETTINGS_TEXT = """\
 # CSV の最終列の見出し。項目の label には使えない。
 MEMO_COLUMN_LABEL = "メモファイル"
 
-FIELD_TYPES = ("text", "multiline", "combo", "select", "checkgroup", "datetime", "datafile")
+FIELD_TYPES = ("text", "multiline", "combo", "select", "checkgroup", "datetime", "time", "datafile")
 
 COMMON_ATTRS = ("id", "label", "type", "required", "remember", "blank_lines_before")
 
@@ -46,6 +47,7 @@ TYPE_ATTRS: dict[str, tuple[str, ...]] = {
     "select": ("options", "other_option"),
     "checkgroup": ("items", "on_text", "off_text", "separator"),
     "datetime": ("with_time",),
+    "time": (),
     "datafile": (),
 }
 

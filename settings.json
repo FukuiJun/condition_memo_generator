@@ -2,6 +2,7 @@
   "history_csv_name": "条件履歴",
   "fields": [
     {"id": "date", "label": "日付", "type": "datetime", "required": true},
+    {"id": "time", "label": "測定時刻", "type": "time"},
     {"id": "program", "label": "プログラム", "type": "combo", "required": true,
      "options": [], "history": true, "remember": true},
     {"id": "board", "label": "基板", "type": "combo", "required": true,

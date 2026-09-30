@@ -31,7 +31,10 @@ class DefaultSettingsTest(unittest.TestCase):
         s = parse_settings(DEFAULT_SETTINGS_TEXT)
         self.assertEqual(s.history_csv_name, "条件履歴")
         self.assertEqual([f.label for f in s.fields],
-                         ["日付", "プログラム", "基板", "基板状態", "試験概要", "データファイル", "備考", "測定者"])
+                         ["日付", "測定時刻", "プログラム", "基板", "基板状態", "試験概要", "データファイル", "備考",
+                          "測定者"])
+        time_field = s.field("time")
+        self.assertEqual((time_field.type, time_field.required, time_field.remember), ("time", False, False))
         self.assertEqual(s.field("board").options, ("Rev.A", "Rev.B"))
         self.assertFalse(s.field("date").with_time)  # 日付のみ
         self.assertEqual(s.field("board_state").items, ("筐体", "線出し", "シャント抵抗"))
@@ -51,9 +54,9 @@ class ValidationTest(unittest.TestCase):
     # ---- AC-18
     def test_duplicate_id(self):
         data = base_data()
-        data["fields"][2]["id"] = "program"
+        data["fields"][3]["id"] = "program"
         errs = errors_of(data)
-        self.assertTrue(any("3番目の項目" in e and "id「program」" in e and "重複" in e for e in errs), errs)
+        self.assertTrue(any("4番目の項目" in e and "id「program」" in e and "重複" in e for e in errs), errs)
 
     def test_two_datetimes(self):
         data = base_data()
@@ -63,9 +66,9 @@ class ValidationTest(unittest.TestCase):
 
     def test_unknown_type(self):
         data = base_data()
-        data["fields"][1]["type"] = "number"
+        data["fields"][2]["type"] = "number"
         errs = errors_of(data)
-        self.assertTrue(any("2番目の項目（id: program）" in e and "未知の種類" in e for e in errs), errs)
+        self.assertTrue(any("3番目の項目（id: program）" in e and "未知の種類" in e for e in errs), errs)
 
     # ---- その他の検証ルール
     def test_not_json(self):
@@ -93,10 +96,10 @@ class ValidationTest(unittest.TestCase):
 
     def test_unknown_attribute(self):
         data = base_data()
-        data["fields"][6]["options"] = ["a"]  # multiline に options は無い
+        data["fields"][7]["options"] = ["a"]  # multiline に options は無い
         data["fields"][0]["colour"] = "red"
         errs = errors_of(data)
-        self.assertTrue(any("7番目の項目" in e and "未知の属性 options" in e for e in errs), errs)
+        self.assertTrue(any("8番目の項目" in e and "未知の属性 options" in e for e in errs), errs)
         self.assertTrue(any("1番目の項目" in e and "未知の属性 colour" in e for e in errs), errs)
 
     def test_unknown_top_level_attribute(self):
@@ -108,26 +111,26 @@ class ValidationTest(unittest.TestCase):
         data = base_data()
         data["fields"].append({"type": "text"})
         errs = errors_of(data)
-        self.assertTrue(any("9番目の項目" in e and "id" in e for e in errs))
-        self.assertTrue(any("9番目の項目" in e and "label" in e for e in errs))
+        self.assertTrue(any("10番目の項目" in e and "id" in e for e in errs))
+        self.assertTrue(any("10番目の項目" in e and "label" in e for e in errs))
 
     def test_bad_id_chars(self):
         data = base_data()
-        data["fields"][1]["id"] = "プログラム"
+        data["fields"][2]["id"] = "プログラム"
         self.assertTrue(any("半角英数字" in e for e in errors_of(data)))
 
     def test_attribute_types(self):
         cases = [
-            (1, "required", "yes"),
-            (1, "remember", 1),
-            (1, "options", "Rev.A"),
-            (1, "options", [1, 2]),
-            (1, "history", "true"),
-            (6, "rows", "5"),
-            (7, "blank_lines_before", 6),
-            (7, "blank_lines_before", True),
-            (3, "items", []),
-            (3, "separator", 1),
+            (2, "required", "yes"),
+            (2, "remember", 1),
+            (2, "options", "Rev.A"),
+            (2, "options", [1, 2]),
+            (2, "history", "true"),
+            (7, "rows", "5"),
+            (8, "blank_lines_before", 6),
+            (8, "blank_lines_before", True),
+            (4, "items", []),
+            (4, "separator", 1),
             (0, "with_time", "yes"),
         ]
         for idx, key, value in cases:
@@ -139,7 +142,7 @@ class ValidationTest(unittest.TestCase):
 
     def test_required_not_allowed_on_checkgroup(self):
         data = base_data()
-        data["fields"][3]["required"] = False
+        data["fields"][4]["required"] = False
         self.assertTrue(any("checkgroup には required" in e for e in errors_of(data)))
 
     def test_select_attributes(self):  # 既定には select 項目が無いので追加した設定で確認
@@ -160,8 +163,8 @@ class ValidationTest(unittest.TestCase):
 
     def test_with_time_only_on_datetime(self):
         data = base_data()
-        data["fields"][1]["with_time"] = True  # プログラム（combo）には使えない
-        self.assertTrue(any("2番目の項目" in e and "未知の属性 with_time" in e for e in errors_of(data)))
+        data["fields"][2]["with_time"] = True  # プログラム（combo）には使えない
+        self.assertTrue(any("3番目の項目" in e and "未知の属性 with_time" in e for e in errors_of(data)))
         data = base_data()
         data["fields"][0]["with_time"] = True
         self.assertTrue(parse_settings(json.dumps(data, ensure_ascii=False)).field("date").with_time)
@@ -195,7 +198,7 @@ class LoadSettingsTest(unittest.TestCase):
             result = load_settings(path)
             self.assertTrue(result.created)
             self.assertEqual(result.errors, [])
-            self.assertEqual(len(result.settings.fields), 8)
+            self.assertEqual(len(result.settings.fields), 9)
             self.assertEqual(path.read_text(encoding="utf-8"), DEFAULT_SETTINGS_TEXT)
 
     def test_invalid_file_falls_back_and_is_not_overwritten(self):  # AC-18（起動時の動作）
@@ -208,7 +211,7 @@ class LoadSettingsTest(unittest.TestCase):
             result = load_settings(path)
             self.assertFalse(result.created)
             self.assertTrue(result.errors)
-            self.assertEqual(len(result.settings.fields), 8)
+            self.assertEqual(len(result.settings.fields), 9)
             self.assertEqual(path.read_text(encoding="utf-8"), text)
 
     def test_bom_is_accepted(self):

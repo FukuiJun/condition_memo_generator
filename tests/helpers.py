@@ -21,6 +21,7 @@ def example_raw(**overrides):
     """仕様書 5.2 の例と同じ入力（画面から集めた raw 値）"""
     raw = {
         "date": "2026-09-28",
+        "time": "14:30",
         "program": "ver1.2.0",
         "board": "Rev.B",
         "board_state": {"筐体": False, "線出し": True, "シャント抵抗": True},

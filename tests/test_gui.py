@@ -77,6 +77,7 @@ class GuiTest(unittest.TestCase):
     def fill_example(self):
         w = self.app.widgets
         w["date"].set_raw("2026-09-28")
+        w["time"].set_raw("14:30")
         w["program"].set_raw("ver1.2.0")
         w["board"].set_raw("Rev.B")
         w["board_state"].set_raw({"筐体": False, "線出し": True, "シャント抵抗": True})
@@ -109,6 +110,13 @@ class GuiTest(unittest.TestCase):
         date_w.set_raw("")
         date_w.set_now()
         self.assertEqual(date_w.get_raw(), date.today().isoformat())
+        # 測定時刻：任意入力。最初は空欄で、［現在時刻］で HH:MM が入る
+        time_w = self.app.widgets["time"]
+        self.assertEqual(time_w.label.cget("text"), "測定時刻")
+        self.assertIsNone(time_w.required_mark)
+        self.assertEqual(time_w.get_raw(), "")
+        time_w.set_now()
+        self.assertRegex(time_w.get_raw(), r"^\d{2}:\d{2}$")
         # 基板状態のチェック項目、試験概要（プリセット無しの入力欄）
         self.assertEqual(list(self.app.widgets["board_state"].vars), ["筐体", "線出し", "シャント抵抗"])
         summary = self.app.widgets["test_summary"]
@@ -169,6 +177,7 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(list(w["program"].combo.cget("values")), ["ver1.2.0"])
         self.assertEqual(list(w["test_summary"].combo.cget("values")), ["USB充電 定電流1A"])
         self.assertEqual(w["date"].get_raw(), date.today().isoformat())
+        self.assertEqual(w["time"].get_raw(), "")  # 測定時刻は保存後に空欄へ戻る
 
         # 再起動
         self.app = self.start()
@@ -215,11 +224,11 @@ class GuiTest(unittest.TestCase):
     def test_ac16_reload_keeps_values(self):
         self.fill_example()
         data = json.loads(DEFAULT_SETTINGS_TEXT)
-        data["fields"].insert(6, {"id": "temp", "label": "周囲温度", "type": "text"})
+        data["fields"].insert(7, {"id": "temp", "label": "周囲温度", "type": "text"})
         (self.app_dir / "settings.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         self.app.reload_settings()
         self.root.update()
-        self.assertEqual(list(self.app.widgets)[6], "temp")
+        self.assertEqual(list(self.app.widgets)[7], "temp")
         self.assertEqual(self.app.widgets["program"].get_raw(), "ver1.2.0")
         self.assertEqual(self.app.widgets["note"].get_raw(), "室温25℃\n負荷500mA")
         self.assertEqual(self.app.widgets["date"].get_raw(), "2026-09-28")
@@ -231,7 +240,7 @@ class GuiTest(unittest.TestCase):
         self.app.reload_settings()
         self.assertEqual(self.messages[-1][0], "showerror")
         self.assertIn("未知の種類", self.messages[-1][2])
-        self.assertEqual(len(self.app.widgets), 8)
+        self.assertEqual(len(self.app.widgets), 9)
         self.assertEqual(self.app.widgets["program"].get_raw(), "ver1.2.0")
 
 

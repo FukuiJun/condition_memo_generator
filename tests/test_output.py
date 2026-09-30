@@ -14,6 +14,7 @@ BOM = b"\xef\xbb\xbf"
 
 EXPECTED_TXT = (
     "日付：2026-09-28\r\n"
+    "測定時刻：14:30\r\n"
     "プログラム：ver1.2.0\r\n"
     "基板：Rev.B\r\n"
     "基板状態：筐体無、線出し有、シャント抵抗有\r\n"
@@ -26,8 +27,8 @@ EXPECTED_TXT = (
     "測定者：山田\r\n"
 ).encode("utf-8")
 
-EXPECTED_HEADER = "日付,プログラム,基板,基板状態,試験概要,データファイル,備考,測定者,メモファイル\r\n"
-EXPECTED_ROW = ('2026-09-28,ver1.2.0,Rev.B,筐体無、線出し有、シャント抵抗有,USB充電 定電流1A,'
+EXPECTED_HEADER = "日付,測定時刻,プログラム,基板,基板状態,試験概要,データファイル,備考,測定者,メモファイル\r\n"
+EXPECTED_ROW = ('2026-09-28,14:30,ver1.2.0,Rev.B,筐体無、線出し有、シャント抵抗有,USB充電 定電流1A,'
                 '20260928_charge_test.csv,"室温25℃\r\n負荷500mA",山田,20260928_charge_test_条件メモ.txt\r\n')
 
 
@@ -117,7 +118,7 @@ class CsvTest(TempDirTest):
             rows = list(csv.reader(fp))
         self.assertEqual(len(rows), 4)
         self.assertEqual(rows[0][-1], "メモファイル")
-        self.assertEqual(rows[1][6], "室温25℃\r\n負荷500mA")
+        self.assertEqual(rows[1][7], "室温25℃\r\n負荷500mA")
         self.assertEqual(self.files(), ["条件履歴.csv"])
         self.assertEqual((self.dir / "条件履歴.csv").read_bytes().count(BOM), 1)
 
@@ -159,7 +160,7 @@ class CsvTest(TempDirTest):
         self.assertEqual(names, ["条件履歴_2.csv"])
         self.assertEqual((self.dir / "条件履歴.csv").read_bytes(), original)
         header = (self.dir / "条件履歴_2.csv").read_bytes().decode("utf-8-sig").split("\r\n")[0]
-        self.assertEqual(header, "日付,プログラム,基板,基板状態,試験概要,データファイル,"
+        self.assertEqual(header, "日付,測定時刻,プログラム,基板,基板状態,試験概要,データファイル,"
                                  "周囲温度,備考,測定者,メモファイル")
         # 2回目以降は一致する _2 に確認なしで追記
         self.save(raw=example_raw(temp="26℃"), settings=settings)
@@ -321,6 +322,14 @@ class ValidationTest(TempDirTest):
             with self.subTest(bad=bad):
                 self.assertTrue(self.check(example_raw(date=bad)))
 
+    def test_time_validation(self):
+        self.assertEqual(self.check(example_raw(time="")), [])  # 空欄でよい
+        self.assertEqual(self.check(example_raw(time="9:05")), [])
+        for bad in ["24:00", "12:60", "1230", "12:30:00", "午後1時"]:
+            with self.subTest(bad=bad):
+                self.assertEqual(self.check(example_raw(time=bad)),
+                                 [f"測定時刻：HH:MM 形式の時刻を入力してください（{bad}）"])
+
     def test_with_time_setting(self):
         timed = settings_with_time()
         self.assertEqual(self.check(example_raw(date="2026-09-28 14:30"), settings=timed), [])
@@ -361,6 +370,12 @@ class ValueTest(unittest.TestCase):
     def test_datafile_name_only(self):
         self.assertEqual(output_values(DEFAULT, example_raw())["datafile"], "20260928_charge_test.csv")
         self.assertEqual(output_values(DEFAULT, example_raw(datafile=""))["datafile"], "")
+
+    def test_time_is_optional_and_normalized(self):  # 測定時刻（任意）
+        self.assertEqual(output_values(DEFAULT, example_raw(time=""))["time"], "")
+        self.assertEqual(output_values(DEFAULT, example_raw(time=" 9:05 "))["time"], "09:05")
+        text = build_txt(DEFAULT, output_values(DEFAULT, example_raw(time=""))).decode("utf-8")
+        self.assertIn("\r\n測定時刻：\r\n", text)
 
     def test_multiline_trailing_newlines_removed(self):
         raw = example_raw(note="a\r\nb\n\n")

@@ -2,7 +2,7 @@
 
 画面から集めた入力値（raw）は項目の id をキーにした辞書で扱う。type ごとの形式:
 
-- text / multiline / combo / datetime: 文字列
+- text / multiline / combo / datetime / time: 文字列
 - datafile: 選択したファイルのフルパス（未選択は ""）
 - select: {"choice": 選択中の候補（未選択は ""）, "other": other_option 用テキスト}
 - checkgroup: {item 名: チェック状態(bool)}
@@ -20,6 +20,8 @@ DATE_FORMAT = "%Y-%m-%d"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M"
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
+_TIME_RE = re.compile(r"^(\d{1,2}):(\d{2})$")
+TIME_PATTERN = "HH:MM"
 
 
 def datetime_pattern(with_time: bool) -> str:
@@ -43,6 +45,22 @@ def parse_datetime_text(text: str, with_time: bool = False) -> datetime | None:
         return datetime.strptime(text, fmt)
     except ValueError:
         return None
+
+
+def now_time_text(now: datetime | None = None) -> str:
+    """現在時刻（HH:MM）"""
+    return (now or datetime.now()).strftime("%H:%M")
+
+
+def parse_time_text(text: str) -> str | None:
+    """時刻（`HH:MM`、時は1桁も可）として正しければ `HH:MM` に整えた文字列、そうでなければ None。"""
+    m = _TIME_RE.match(text.strip())
+    if not m:
+        return None
+    hour, minute = int(m.group(1)), int(m.group(2))
+    if hour > 23 or minute > 59:
+        return None
+    return f"{hour:02d}:{minute:02d}"
 
 
 def empty_raw(field: FieldDef) -> object:
@@ -115,8 +133,11 @@ def output_value(field: FieldDef, raw: object) -> str:
     if t == "multiline":
         # 末尾の空行・空白は落とす（先頭側や途中はそのまま）
         return _normalize_newlines(coerced).rstrip()
-    # text / combo / datetime（1行）
-    return " ".join(_normalize_newlines(coerced).split("\n")).strip()
+    # text / combo / datetime / time（1行）
+    value = " ".join(_normalize_newlines(coerced).split("\n")).strip()
+    if t == "time":
+        return parse_time_text(value) or value  # 9:05 → 09:05（不正な値は入力チェックで弾く）
+    return value
 
 
 def output_values(settings: Settings, raw_values: dict[str, object]) -> dict[str, str]:
@@ -142,6 +163,9 @@ def validate_input(
                 what = "日時" if f.with_time else "日付"
                 errors.append(f"{f.label}：{datetime_pattern(f.with_time)} 形式で実在する{what}を"
                               f"入力してください（{value}）")
+            continue
+        if f.type == "time" and value and parse_time_text(value) is None:
+            errors.append(f"{f.label}：{TIME_PATTERN} 形式の時刻を入力してください（{value}）")
             continue
         if not f.required or value:
             continue

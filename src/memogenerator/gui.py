@@ -14,7 +14,8 @@ from .errorlog import log_error
 from .output import SaveCancelled, SaveError, save_outputs
 from .settings import FieldDef, Settings, SettingsError, read_settings_file, write_default_settings
 from .state import StateStore, combo_candidates
-from .values import coerce_raw, datafile_name, empty_raw, now_text, output_values, validate_input
+from .values import (coerce_raw, datafile_name, empty_raw, now_text, now_time_text, output_values,
+                     validate_input)
 
 WINDOW_WIDTH = 600  # 論理ピクセル（96 dpi 換算）
 PAD = 4
@@ -206,6 +207,29 @@ class DatetimeWidget(FieldWidget):
         self.set_now()
 
 
+class TimeWidget(FieldWidget):
+    """時刻（任意入力）。空欄のままでもよく、［現在時刻］で今の時刻を入れる"""
+
+    def build(self, frame):
+        self.var = tk.StringVar()
+        self.entry = ttk.Entry(frame, textvariable=self.var, width=8)
+        self.entry.pack(side="left")
+        self.now_button = ttk.Button(frame, text="現在時刻", command=self.set_now, width=8)
+        self.now_button.pack(side="left", padx=(6, 0))
+        self.hint = ttk.Label(frame, text="（任意・HH:MM）" if not self.field.required else "（HH:MM）",
+                              style="CardMuted.TLabel")
+        self.hint.pack(side="left", padx=(8, 0))
+
+    def set_now(self):
+        self.var.set(now_time_text())
+
+    def get_raw(self):
+        return self.var.get()
+
+    def set_raw(self, raw):
+        self.var.set(raw if isinstance(raw, str) else "")
+
+
 class DatafileWidget(FieldWidget):
     EMPTY_TEXT = "（未選択）"
 
@@ -255,6 +279,7 @@ WIDGET_CLASSES: dict[str, type[FieldWidget]] = {
     "select": SelectWidget,
     "checkgroup": CheckgroupWidget,
     "datetime": DatetimeWidget,
+    "time": TimeWidget,
     "datafile": DatafileWidget,
 }
 

@@ -95,7 +95,7 @@ class RememberTest(unittest.TestCase):
     def test_checkgroup_matched_by_item_name(self):
         store = self.saved_store(example_raw())
         data = json.loads(DEFAULT_TEXT())
-        data["fields"][3]["items"] = ["シャント抵抗", "新項目", "筐体"]
+        data["fields"][4]["items"] = ["シャント抵抗", "新項目", "筐体"]
         s = parse_settings(json.dumps(data, ensure_ascii=False))
         self.assertEqual(store.remembered(s.field("board_state")),
                          {"シャント抵抗": True, "新項目": False, "筐体": False})

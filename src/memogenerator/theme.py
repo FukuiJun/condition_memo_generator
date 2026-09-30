@@ -90,6 +90,7 @@ def apply_theme(root: tk.Tk) -> Fonts:
     # 文字
     style.configure("TLabel", background=PAPER, foreground=TEXT)
     style.configure("Card.TLabel", background=CARD, foreground=TEXT)
+    style.configure("CardMuted.TLabel", background=CARD, foreground=MUTED, font=fonts.small)
     style.configure("Required.TLabel", background=CARD, foreground=REQUIRED, font=fonts.bold)
     style.configure("Section.TLabel", background=CARD, foreground=ACCENT, font=fonts.bold)
     style.configure("Heading.TLabel", background=PAPER, foreground=MUTED, font=fonts.bold)
