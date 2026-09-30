@@ -283,11 +283,15 @@ py -3.12 -m unittest discover -s tests -t .
 バージョンを決めて配布するときは、次の手順で GitHub の Releases に `MemoGenerator-vX.Y.Z.zip` が自動で載ります。
 
 1. `src/memogenerator/__init__.py` の `__version__` を新しい番号（例：`1.5.0`）にしてコミット・プッシュ
-2. そのコミットに `v` を付けたタグを付けてプッシュ（`git tag v1.5.0` → `git push origin v1.5.0`）。
-   GitHub の画面で Releases →「Draft a new release」からタグ `v1.5.0` を作ってもかまいません
-3. GitHub Actions がテスト・ビルド・起動確認のあと、リリース `v1.5.0` を作って zip を添付します
+2. 次のどれか1つを行う
+   - **Actions の画面から**：「Actions」タブ →「Build MemoGenerator.exe」→「Run workflow」で、ブランチを選び、
+     「リリースするバージョン」に `1.5.0` を入れて実行（タグ `v1.5.0` も自動で作られます）
+   - **Releases の画面から**：「Draft a new release」→ タグに `v1.5.0` を入力し（`v.1.5.0` のようにピリオドを入れない）、
+     Target にブランチを選んで「Publish release」
+   - **git で**：`git tag v1.5.0` → `git push origin v1.5.0`
+3. GitHub Actions がテスト・ビルド・起動確認のあと、リリース `v1.5.0` に `MemoGenerator-v1.5.0.zip` を添付します（数分かかります）
 
-タグと `__version__` が一致しないとリリースは作られず、Actions が失敗します（別の版の exe を配らないため）。
+タグと `__version__` が一致しないと zip は添付されず、Actions が失敗します（別の版の exe を配らないため）。
 
 ### 開発中の版のダウンロード（GitHub Actions）
 
