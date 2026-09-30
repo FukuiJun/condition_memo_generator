@@ -16,21 +16,31 @@ from pathlib import Path, PureWindowsPath
 
 from .settings import FieldDef, Settings
 
+DATE_FORMAT = "%Y-%m-%d"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M"
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
 
 
-def now_text(now: datetime | None = None) -> str:
-    return (now or datetime.now()).strftime(DATETIME_FORMAT)
+def datetime_pattern(with_time: bool) -> str:
+    """画面・エラー表示用の形式（YYYY-MM-DD または YYYY-MM-DD HH:MM）"""
+    return "YYYY-MM-DD HH:MM" if with_time else "YYYY-MM-DD"
 
 
-def parse_datetime_text(text: str) -> datetime | None:
-    """`YYYY-MM-DD HH:MM` 形式で実在する日時なら datetime、そうでなければ None。"""
+def now_text(with_time: bool = False, now: datetime | None = None) -> str:
+    """今日の日付（with_time なら現在時刻まで）"""
+    return (now or datetime.now()).strftime(DATETIME_FORMAT if with_time else DATE_FORMAT)
+
+
+def parse_datetime_text(text: str, with_time: bool = False) -> datetime | None:
+    """形式（`YYYY-MM-DD`、with_time なら `YYYY-MM-DD HH:MM`）に合う実在する日付なら datetime、
+    そうでなければ None。"""
     text = text.strip()
-    if not _DATETIME_RE.match(text):
+    pattern, fmt = (_DATETIME_RE, DATETIME_FORMAT) if with_time else (_DATE_RE, DATE_FORMAT)
+    if not pattern.match(text):
         return None
     try:
-        return datetime.strptime(text, DATETIME_FORMAT)
+        return datetime.strptime(text, fmt)
     except ValueError:
         return None
 
@@ -128,8 +138,10 @@ def validate_input(
         if f.type == "datetime":
             if not value:
                 errors.append(f"{f.label}：入力されていません")
-            elif parse_datetime_text(value) is None:
-                errors.append(f"{f.label}：YYYY-MM-DD HH:MM 形式で実在する日時を入力してください（{value}）")
+            elif parse_datetime_text(value, f.with_time) is None:
+                what = "日時" if f.with_time else "日付"
+                errors.append(f"{f.label}：{datetime_pattern(f.with_time)} 形式で実在する{what}を"
+                              f"入力してください（{value}）")
             continue
         if not f.required or value:
             continue

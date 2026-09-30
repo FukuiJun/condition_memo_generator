@@ -40,10 +40,11 @@ def txt_base_name(settings: Settings, values: dict[str, str]) -> str:
     datafile = values.get(df.id, "") if df else ""
     if datafile:
         return Path(datafile).stem + TXT_SUFFIX
-    dt = parse_datetime_text(values.get(settings.datetime_field.id, ""))
+    dt_field = settings.datetime_field
+    dt = parse_datetime_text(values.get(dt_field.id, ""), dt_field.with_time)
     if dt is None:
-        raise ValueError("日時が不正なため条件メモのファイル名を決められません")
-    return dt.strftime("%Y%m%d_%H%M") + TXT_SUFFIX
+        raise ValueError("日付が不正なため条件メモのファイル名を決められません")
+    return dt.strftime("%Y%m%d_%H%M" if dt_field.with_time else "%Y%m%d") + TXT_SUFFIX
 
 
 def numbered_name(base: str, n: int, ext: str) -> str:

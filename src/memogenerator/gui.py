@@ -186,12 +186,15 @@ class CheckgroupWidget(FieldWidget):
 class DatetimeWidget(FieldWidget):
     def build(self, frame):
         self.var = tk.StringVar()
-        self.entry = ttk.Entry(frame, textvariable=self.var, width=20)
+        with_time = self.field.with_time
+        self.entry = ttk.Entry(frame, textvariable=self.var, width=20 if with_time else 14)
         self.entry.pack(side="left")
-        ttk.Button(frame, text="現在時刻", command=self.set_now, width=8).pack(side="left", padx=(6, 0))
+        self.now_button = ttk.Button(frame, text="現在時刻" if with_time else "今日", command=self.set_now,
+                                     width=8 if with_time else 6)
+        self.now_button.pack(side="left", padx=(6, 0))
 
     def set_now(self):
-        self.var.set(now_text())
+        self.var.set(now_text(self.field.with_time))
 
     def get_raw(self):
         return self.var.get()
@@ -271,6 +274,7 @@ class MemoGeneratorApp:
         self.scale = max(1.0, root.winfo_fpixels("1i") / 96.0)
         self.fonts = theme.apply_theme(root)
         self._folder_flash_job = None
+        self._grow_job = None
         self._build_menu()
         self._build_layout()
         self._build_form()
@@ -279,7 +283,19 @@ class MemoGeneratorApp:
         root.bind_all("<Control-s>", self._on_ctrl_s)
         root.bind_all("<Control-S>", self._on_ctrl_s)
         root.bind_all("<FocusIn>", self._on_focus_in, add="+")
-        root.after_idle(self._fit_window)
+        root.bind("<Destroy>", self._on_destroy, add="+")
+        self._fit_job = root.after_idle(self._fit_window)
+
+    def _on_destroy(self, event):
+        """ウィンドウを閉じるとき、予約済みの処理を取り消す（閉じた後に実行されてエラーになるのを防ぐ）"""
+        if event.widget is not self.root:
+            return
+        for job in (self._fit_job, self._grow_job, self._folder_flash_job):
+            if job is not None:
+                try:
+                    self.root.after_cancel(job)
+                except tk.TclError:
+                    pass
 
     # ------------------------------------------------------------ 画面の組み立て
 
@@ -398,7 +414,7 @@ class MemoGeneratorApp:
     def _initial_raw(self, field: FieldDef) -> object:
         """起動時（または新しく追加された項目）の初期値（F-02）"""
         if field.type == "datetime":
-            return now_text()
+            return now_text(field.with_time)
         remembered = self.state.remembered(field)
         return remembered if remembered is not None else empty_raw(field)
 
@@ -429,6 +445,7 @@ class MemoGeneratorApp:
 
     def _grow_to_fit(self):
         """ステータスが複数行になったときなど、下部が高くなった分だけウィンドウを伸ばす"""
+        self._grow_job = None
         self.root.update_idletasks()
         need = self.outer.winfo_reqheight()
         limit = self.root.winfo_screenheight() - int(120 * self.scale)
@@ -551,7 +568,8 @@ class MemoGeneratorApp:
         self.status_var.set(text)
         self.status_label.configure(style=style)
         self.status_icon.configure(style=style, text=theme.STATUS_ICONS[kind] if text else "")
-        self.root.after_idle(self._grow_to_fit)
+        if self._grow_job is None:
+            self._grow_job = self.root.after_idle(self._grow_to_fit)
 
     def _confirm_new_csv(self, name: str) -> bool:
         return messagebox.askokcancel(
@@ -608,7 +626,7 @@ class MemoGeneratorApp:
             w = self.widgets[f.id]
             w.refresh_candidates()
             if f.type == "datetime":
-                w.clear()  # 現在時刻に更新
+                w.clear()  # 今日の日付（with_time なら現在時刻）に更新
             elif not f.remember:
                 w.clear()
 

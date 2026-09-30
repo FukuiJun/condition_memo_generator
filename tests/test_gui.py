@@ -4,10 +4,11 @@ import json
 import os
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 from unittest import mock
 
-from .helpers import DEFAULT
+from .helpers import DEFAULT, settings_with_select_text
 
 try:
     import tkinter as tk
@@ -75,11 +76,11 @@ class GuiTest(unittest.TestCase):
 
     def fill_example(self):
         w = self.app.widgets
-        w["datetime"].set_raw("2026-09-28 14:30")
+        w["date"].set_raw("2026-09-28")
         w["program"].set_raw("ver1.2.0")
         w["board"].set_raw("Rev.B")
-        w["board_state"].set_raw({"外枠": False, "線出し": True, "シャント抵抗": True})
-        w["method"].set_raw({"choice": "USB充電", "other": ""})
+        w["board_state"].set_raw({"筐体": False, "線出し": True, "シャント抵抗": True})
+        w["test_summary"].set_raw("USB充電 定電流1A")
         w["datafile"].set_raw(str(self.folder / "20260928_charge_test.csv"))
         w["note"].set_raw("室温25℃\n負荷500mA")
         w["measurer"].set_raw("山田")
@@ -100,6 +101,19 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(program.required_mark.cget("text"), " *")  # 必須の印
         self.assertEqual(self.app.widgets["board_state"].label.cget("text"), "基板状態")
         self.assertIsNone(self.app.widgets["board_state"].required_mark)
+        # 日付：今日の日付だけが入り、ボタンは［今日］
+        date_w = self.app.widgets["date"]
+        self.assertEqual(date_w.label.cget("text"), "日付")
+        self.assertEqual(date_w.get_raw(), date.today().isoformat())
+        self.assertEqual(date_w.now_button.cget("text"), "今日")
+        date_w.set_raw("")
+        date_w.set_now()
+        self.assertEqual(date_w.get_raw(), date.today().isoformat())
+        # 基板状態のチェック項目、試験概要（プリセット無しの入力欄）
+        self.assertEqual(list(self.app.widgets["board_state"].vars), ["筐体", "線出し", "シャント抵抗"])
+        summary = self.app.widgets["test_summary"]
+        self.assertEqual(summary.label.cget("text"), "試験概要")
+        self.assertEqual(list(summary.combo.cget("values")), [])
 
     def test_ac08_output_format(self):
         self.assertTrue(self.app.csv_var.get())
@@ -110,7 +124,9 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(self.messages[-1][2], "出力形式を1つ以上選んでください")
         self.assertEqual(self.files(), [])
 
-    def test_ac07_other_entry(self):
+    def test_ac07_other_entry(self):  # select 型の「その他」（既定の設定には無いので追加して起動）
+        (self.app_dir / "settings.json").write_text(settings_with_select_text(), encoding="utf-8")
+        self.app = self.start()
         sel = self.app.widgets["method"]
         self.assertEqual(str(sel.other_entry.cget("state")), "disabled")
         sel.choice_var.set("その他")
@@ -127,7 +143,7 @@ class GuiTest(unittest.TestCase):
         self.app.save()
         name, _title, message = self.messages[-1]
         self.assertEqual(name, "showwarning")
-        for label in ["プログラム", "基板", "充電・放電方式", "測定者"]:
+        for label in ["プログラム", "基板", "試験概要", "測定者"]:
             self.assertIn(label, message)
         self.assertEqual(self.files(), [])
 
@@ -151,17 +167,20 @@ class GuiTest(unittest.TestCase):
         self.assertTrue(self.app.txt_var.get())
         self.assertEqual(self.app.folder_var.get(), str(self.folder))
         self.assertEqual(list(w["program"].combo.cget("values")), ["ver1.2.0"])
+        self.assertEqual(list(w["test_summary"].combo.cget("values")), ["USB充電 定電流1A"])
+        self.assertEqual(w["date"].get_raw(), date.today().isoformat())
 
         # 再起動
         self.app = self.start()
         w = self.app.widgets
         self.assertEqual(w["program"].get_raw(), "ver1.2.0")
         self.assertEqual(w["measurer"].get_raw(), "山田")
-        self.assertEqual(w["method"].get_raw()["choice"], "USB充電")
-        self.assertEqual(w["board_state"].get_raw(), {"外枠": False, "線出し": True, "シャント抵抗": True})
+        self.assertEqual(w["test_summary"].get_raw(), "USB充電 定電流1A")
+        self.assertEqual(list(w["test_summary"].combo.cget("values")), ["USB充電 定電流1A"])
+        self.assertEqual(w["board_state"].get_raw(), {"筐体": False, "線出し": True, "シャント抵抗": True})
         self.assertEqual(w["note"].get_raw(), "")
         self.assertEqual(w["datafile"].get_raw(), "")
-        self.assertNotEqual(w["datetime"].get_raw(), "2026-09-28 14:30")
+        self.assertEqual(w["date"].get_raw(), date.today().isoformat())
         self.assertEqual(self.app.folder_var.get(), str(self.folder))
         self.assertTrue(self.app.csv_var.get())
         self.assertFalse(self.app.txt_var.get())
@@ -203,7 +222,7 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(list(self.app.widgets)[6], "temp")
         self.assertEqual(self.app.widgets["program"].get_raw(), "ver1.2.0")
         self.assertEqual(self.app.widgets["note"].get_raw(), "室温25℃\n負荷500mA")
-        self.assertEqual(self.app.widgets["datetime"].get_raw(), "2026-09-28 14:30")
+        self.assertEqual(self.app.widgets["date"].get_raw(), "2026-09-28")
 
     def test_reload_error_keeps_screen(self):
         self.fill_example()

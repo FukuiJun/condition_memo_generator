@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from .helpers import ROOT
+from .helpers import ROOT, settings_with_select_text
 
 from memogenerator.settings import (
     DEFAULT_SETTINGS_TEXT,
@@ -31,9 +31,13 @@ class DefaultSettingsTest(unittest.TestCase):
         s = parse_settings(DEFAULT_SETTINGS_TEXT)
         self.assertEqual(s.history_csv_name, "条件履歴")
         self.assertEqual([f.label for f in s.fields],
-                         ["日時", "プログラム", "基板", "基板状態", "充電・放電方式", "データファイル", "備考", "測定者"])
+                         ["日付", "プログラム", "基板", "基板状態", "試験概要", "データファイル", "備考", "測定者"])
         self.assertEqual(s.field("board").options, ("Rev.A", "Rev.B"))
-        self.assertEqual(s.field("method").other_option, "その他")
+        self.assertFalse(s.field("date").with_time)  # 日付のみ
+        self.assertEqual(s.field("board_state").items, ("筐体", "線出し", "シャント抵抗"))
+        summary = s.field("test_summary")
+        self.assertEqual((summary.type, summary.options, summary.history, summary.required, summary.remember),
+                         ("combo", (), True, True, True))
         self.assertEqual(s.field("note").rows, 5)
         self.assertEqual(s.field("measurer").blank_lines_before, 2)
         self.assertFalse(s.field("note").remember)
@@ -124,7 +128,7 @@ class ValidationTest(unittest.TestCase):
             (7, "blank_lines_before", True),
             (3, "items", []),
             (3, "separator", 1),
-            (4, "other_option", 5),
+            (0, "with_time", "yes"),
         ]
         for idx, key, value in cases:
             with self.subTest(key=key, value=value):
@@ -138,10 +142,29 @@ class ValidationTest(unittest.TestCase):
         data["fields"][3]["required"] = False
         self.assertTrue(any("checkgroup には required" in e for e in errors_of(data)))
 
-    def test_select_needs_options(self):
+    def test_select_attributes(self):  # 既定には select 項目が無いので追加した設定で確認
+        def select_data():
+            data = json.loads(settings_with_select_text())
+            idx = [f["id"] for f in data["fields"]].index("method")
+            return data, data["fields"][idx], idx + 1
+
+        data, method, n = select_data()
+        del method["options"]
+        self.assertTrue(any(f"{n}番目の項目" in e and "select には options" in e for e in errors_of(data)))
+        data, method, n = select_data()
+        method["other_option"] = 5
+        self.assertTrue(any(f"{n}番目の項目" in e and "other_option" in e for e in errors_of(data)))
+        data, method, n = select_data()
+        method["other_option"] = "USB充電"  # options と重複
+        self.assertTrue(any("options にも含まれています" in e for e in errors_of(data)))
+
+    def test_with_time_only_on_datetime(self):
         data = base_data()
-        del data["fields"][4]["options"]
-        self.assertTrue(any("select には options" in e for e in errors_of(data)))
+        data["fields"][1]["with_time"] = True  # プログラム（combo）には使えない
+        self.assertTrue(any("2番目の項目" in e and "未知の属性 with_time" in e for e in errors_of(data)))
+        data = base_data()
+        data["fields"][0]["with_time"] = True
+        self.assertTrue(parse_settings(json.dumps(data, ensure_ascii=False)).field("date").with_time)
 
     def test_history_csv_name(self):
         for bad in ["", "a/b", "条件:履歴", "CON", "abc.", 3]:

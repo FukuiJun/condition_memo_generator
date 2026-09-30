@@ -14,17 +14,16 @@ DEFAULT_SETTINGS_TEXT = """\
 {
   "history_csv_name": "条件履歴",
   "fields": [
-    {"id": "datetime", "label": "日時", "type": "datetime", "required": true},
+    {"id": "date", "label": "日付", "type": "datetime", "required": true},
     {"id": "program", "label": "プログラム", "type": "combo", "required": true,
      "options": [], "history": true, "remember": true},
     {"id": "board", "label": "基板", "type": "combo", "required": true,
      "options": ["Rev.A", "Rev.B"], "history": true, "remember": true},
     {"id": "board_state", "label": "基板状態", "type": "checkgroup",
-     "items": ["外枠", "線出し", "シャント抵抗"],
+     "items": ["筐体", "線出し", "シャント抵抗"],
      "on_text": "有", "off_text": "無", "separator": "、", "remember": true},
-    {"id": "method", "label": "充電・放電方式", "type": "select", "required": true,
-     "options": ["USB充電", "ワイヤレス充電", "連続測定モード"],
-     "other_option": "その他", "remember": true},
+    {"id": "test_summary", "label": "試験概要", "type": "combo", "required": true,
+     "options": [], "history": true, "remember": true},
     {"id": "datafile", "label": "データファイル", "type": "datafile"},
     {"id": "note", "label": "備考", "type": "multiline", "rows": 5},
     {"id": "measurer", "label": "測定者", "type": "combo", "required": true,
@@ -46,7 +45,7 @@ TYPE_ATTRS: dict[str, tuple[str, ...]] = {
     "combo": ("options", "history"),
     "select": ("options", "other_option"),
     "checkgroup": ("items", "on_text", "off_text", "separator"),
-    "datetime": (),
+    "datetime": ("with_time",),
     "datafile": (),
 }
 
@@ -75,6 +74,8 @@ class FieldDef:
     options: tuple[str, ...] = ()
     history: bool = False
     other_option: str | None = None
+    # datetime（false: YYYY-MM-DD の日付のみ / true: YYYY-MM-DD HH:MM）
+    with_time: bool = False
     # checkgroup
     items: tuple[str, ...] = ()
     on_text: str = "有"
@@ -222,6 +223,8 @@ def _validate_field(index: int, raw: object, errors: list[str]) -> FieldDef | No
             err("other_option は空でない文字列で指定してください")
         elif _is_str_list(raw.get("options")) and v in raw["options"]:
             err(f"other_option「{v}」が options にも含まれています")
+    if ftype == "datetime" and "with_time" in raw and not _is_bool(raw["with_time"]):
+        err("with_time は true または false で指定してください")
     if ftype == "checkgroup":
         if "items" not in raw:
             err("checkgroup には items が必要です")
@@ -236,7 +239,7 @@ def _validate_field(index: int, raw: object, errors: list[str]) -> FieldDef | No
 
     kwargs: dict = {"id": fid, "label": label, "type": ftype}
     for key in ("required", "remember", "blank_lines_before", "rows", "history",
-                "other_option", "on_text", "off_text", "separator"):
+                "other_option", "with_time", "on_text", "off_text", "separator"):
         if key in raw:
             kwargs[key] = raw[key]
     for key in ("options", "items"):

@@ -3,7 +3,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from .helpers import DEFAULT, example_raw, settings_with_temp_field
+from .helpers import (DEFAULT, example_raw, settings_with_select, settings_with_temp_field,
+                      settings_with_time)
 
 from memogenerator import output
 from memogenerator.output import SaveCancelled, SaveError, build_txt, save_outputs, txt_base_name
@@ -12,11 +13,11 @@ from memogenerator.values import output_values, validate_input
 BOM = b"\xef\xbb\xbf"
 
 EXPECTED_TXT = (
-    "日時：2026-09-28 14:30\r\n"
+    "日付：2026-09-28\r\n"
     "プログラム：ver1.2.0\r\n"
     "基板：Rev.B\r\n"
-    "基板状態：外枠無、線出し有、シャント抵抗有\r\n"
-    "充電・放電方式：USB充電\r\n"
+    "基板状態：筐体無、線出し有、シャント抵抗有\r\n"
+    "試験概要：USB充電 定電流1A\r\n"
     "データファイル：20260928_charge_test.csv\r\n"
     "備考：室温25℃\r\n"
     "負荷500mA\r\n"
@@ -25,8 +26,8 @@ EXPECTED_TXT = (
     "測定者：山田\r\n"
 ).encode("utf-8")
 
-EXPECTED_HEADER = "日時,プログラム,基板,基板状態,充電・放電方式,データファイル,備考,測定者,メモファイル\r\n"
-EXPECTED_ROW = ('2026-09-28 14:30,ver1.2.0,Rev.B,外枠無、線出し有、シャント抵抗有,USB充電,'
+EXPECTED_HEADER = "日付,プログラム,基板,基板状態,試験概要,データファイル,備考,測定者,メモファイル\r\n"
+EXPECTED_ROW = ('2026-09-28,ver1.2.0,Rev.B,筐体無、線出し有、シャント抵抗有,USB充電 定電流1A,'
                 '20260928_charge_test.csv,"室温25℃\r\n負荷500mA",山田,20260928_charge_test_条件メモ.txt\r\n')
 
 
@@ -73,7 +74,16 @@ class TxtTest(TempDirTest):
         values = output_values(DEFAULT, example_raw(datafile="/home/u/eval/x/abc.csv"))
         self.assertEqual(txt_base_name(DEFAULT, values) + ".txt", "abc_条件メモ.txt")
         values = output_values(DEFAULT, example_raw(datafile=""))
-        self.assertEqual(txt_base_name(DEFAULT, values) + ".txt", "20260928_1430_条件メモ.txt")
+        self.assertEqual(txt_base_name(DEFAULT, values) + ".txt", "20260928_条件メモ.txt")
+        # 時刻付きの設定（with_time: true）では時刻もファイル名に入る
+        timed = settings_with_time()
+        values = output_values(timed, example_raw(datafile="", date="2026-09-28 14:30"))
+        self.assertEqual(txt_base_name(timed, values) + ".txt", "20260928_1430_条件メモ.txt")
+
+    def test_memo_name_without_datafile_gets_numbered(self):
+        raw = example_raw(datafile="")
+        self.assertEqual(self.save(raw=raw, txt=True, csv=False), ["20260928_条件メモ.txt"])
+        self.assertEqual(self.save(raw=raw, txt=True, csv=False), ["20260928_条件メモ_2.txt"])
 
     def test_ac11_existing_txt_is_not_overwritten(self):
         existing = self.dir / "20260928_charge_test_条件メモ.txt"
@@ -132,7 +142,7 @@ class CsvTest(TempDirTest):
         path.write_bytes(BOM + EXPECTED_HEADER.rstrip("\r\n").encode("utf-8"))
         self.save()
         text = path.read_bytes().decode("utf-8-sig")
-        self.assertTrue(text.startswith(EXPECTED_HEADER + "2026-09-28 14:30,"))
+        self.assertTrue(text.startswith(EXPECTED_HEADER + "2026-09-28,"))
 
     def test_ac17_header_change_creates_numbered_file(self):
         self.save()
@@ -149,7 +159,7 @@ class CsvTest(TempDirTest):
         self.assertEqual(names, ["条件履歴_2.csv"])
         self.assertEqual((self.dir / "条件履歴.csv").read_bytes(), original)
         header = (self.dir / "条件履歴_2.csv").read_bytes().decode("utf-8-sig").split("\r\n")[0]
-        self.assertEqual(header, "日時,プログラム,基板,基板状態,充電・放電方式,データファイル,"
+        self.assertEqual(header, "日付,プログラム,基板,基板状態,試験概要,データファイル,"
                                  "周囲温度,備考,測定者,メモファイル")
         # 2回目以降は一致する _2 に確認なしで追記
         self.save(raw=example_raw(temp="26℃"), settings=settings)
@@ -297,35 +307,43 @@ class RollbackTest(TempDirTest):
 
 
 class ValidationTest(TempDirTest):
-    def check(self, raw, csv=True, txt=False, folder=None):
-        return validate_input(DEFAULT, raw, str(self.dir) if folder is None else folder, csv, txt)
+    def check(self, raw, csv=True, txt=False, folder=None, settings=DEFAULT):
+        return validate_input(settings, raw, str(self.dir) if folder is None else folder, csv, txt)
 
     def test_ok(self):
         self.assertEqual(self.check(example_raw()), [])
 
     def test_ac12_nonexistent_date(self):
-        errs = self.check(example_raw(datetime="2026-02-30 10:00"))
-        self.assertEqual(len(errs), 1)
-        self.assertIn("日時", errs[0])
-        for bad in ["2026/09/28 14:30", "2026-09-28 14:30:00", "2026-9-28 14:30", "2026-09-28 24:00", ""]:
+        errs = self.check(example_raw(date="2026-02-30"))
+        self.assertEqual(errs, ["日付：YYYY-MM-DD 形式で実在する日付を入力してください（2026-02-30）"])
+        # 日付のみの設定では時刻付きも不可
+        for bad in ["2026/09/28", "2026-9-28", "2026-09-28 14:30", "20260928", ""]:
             with self.subTest(bad=bad):
-                self.assertTrue(self.check(example_raw(datetime=bad)))
+                self.assertTrue(self.check(example_raw(date=bad)))
 
-    def test_ac07_other_option(self):
+    def test_with_time_setting(self):
+        timed = settings_with_time()
+        self.assertEqual(self.check(example_raw(date="2026-09-28 14:30"), settings=timed), [])
+        for bad in ["2026-09-28", "2026-09-28 24:00", "2026-02-30 10:00"]:
+            with self.subTest(bad=bad):
+                self.assertTrue(self.check(example_raw(date=bad), settings=timed))
+
+    def test_ac07_other_option(self):  # select 型の「その他」（既定の設定には無いので追加した設定で確認）
+        sel = settings_with_select()
         raw = example_raw(method={"choice": "その他", "other": "放電 定電流1A"})
-        self.assertEqual(self.check(raw), [])
-        self.assertEqual(output_values(DEFAULT, raw)["method"], "放電 定電流1A")
-        errs = self.check(example_raw(method={"choice": "その他", "other": "  "}))
+        self.assertEqual(self.check(raw, settings=sel), [])
+        self.assertEqual(output_values(sel, raw)["method"], "放電 定電流1A")
+        errs = self.check(example_raw(method={"choice": "その他", "other": "  "}), settings=sel)
         self.assertEqual(errs, ["充電・放電方式：「その他」の内容が入力されていません"])
         # その他以外を選べば、入力済みの他テキストは出力されない
         raw = example_raw(method={"choice": "USB充電", "other": "放電 定電流1A"})
-        self.assertEqual(output_values(DEFAULT, raw)["method"], "USB充電")
+        self.assertEqual(output_values(sel, raw)["method"], "USB充電")
 
     def test_ac13_required_fields_listed(self):
-        raw = example_raw(program="", board=" ", method={"choice": "", "other": ""}, measurer="")
+        raw = example_raw(program="", board=" ", test_summary="", measurer="")
         errs = self.check(raw)
         labels = [e.split("：")[0] for e in errs]
-        self.assertEqual(labels, ["プログラム", "基板", "充電・放電方式", "測定者"])
+        self.assertEqual(labels, ["プログラム", "基板", "試験概要", "測定者"])
 
     def test_folder_and_format(self):
         self.assertEqual(self.check(example_raw(), folder=""), ["保存先：フォルダが選択されていません"])
@@ -335,10 +353,10 @@ class ValidationTest(TempDirTest):
 
 class ValueTest(unittest.TestCase):
     def test_ac06_checkgroup(self):
-        raw = example_raw(board_state={"外枠": False, "線出し": True, "シャント抵抗": True})
-        self.assertEqual(output_values(DEFAULT, raw)["board_state"], "外枠無、線出し有、シャント抵抗有")
+        raw = example_raw(board_state={"筐体": False, "線出し": True, "シャント抵抗": True})
+        self.assertEqual(output_values(DEFAULT, raw)["board_state"], "筐体無、線出し有、シャント抵抗有")
         raw = example_raw(board_state={})
-        self.assertEqual(output_values(DEFAULT, raw)["board_state"], "外枠無、線出し無、シャント抵抗無")
+        self.assertEqual(output_values(DEFAULT, raw)["board_state"], "筐体無、線出し無、シャント抵抗無")
 
     def test_datafile_name_only(self):
         self.assertEqual(output_values(DEFAULT, example_raw())["datafile"], "20260928_charge_test.csv")
