@@ -1,6 +1,7 @@
-"""画面デザイン「ラボノート」：色・フォント・ttk スタイルの定義
+"""画面デザイン「和紙」：色・フォント・ttk スタイルの定義
 
-生成り色の紙の上に白い入力カード、濃紺のヘッダ帯と保存ボタン。
+温かいベージュの紙の地に墨色の文字。濃い帯は使わず、タイトルは文字と二重の細い罫線だけ。
+アクセント（保存ボタン・チェック・フォーカス枠）はくすんだ藍色。
 色やフォントを変えるときはこのファイルだけを編集する。
 """
 
@@ -11,27 +12,30 @@ import tkinter.font as tkfont
 from dataclasses import dataclass
 from tkinter import ttk
 
-PAPER = "#F5F3EE"  # 背景（紙）
-PAPER_DARK = "#ECE8DF"  # ステータスバー
-CARD = "#FFFFFF"  # 入力カード
-BORDER = "#D9D4C7"  # 枠線
-BUTTON = "#EDEAE2"  # 通常ボタン
-BUTTON_HOVER = "#E2DED3"
-DISABLED = "#F0EEE8"  # 入力不可の欄
-ACCENT = "#1F3A5F"  # 濃紺（ヘッダ帯・保存ボタン・フォーカス枠）
-ACCENT_HOVER = "#2B4F7E"
-ACCENT_PRESSED = "#162B47"
-ACCENT_SUB = "#C9D3E0"  # ヘッダ帯の補助文字
-TEXT = "#2B2B2B"
-MUTED = "#6B6B6B"
-REQUIRED = "#C0392B"  # 必須の *
-HIGHLIGHT = "#FFF4CC"  # 保存先が変わったときの強調
+PAPER = "#F3EEE4"  # 背景（和紙）
+CARD = "#FAF7F1"  # 入力欄をまとめる面（少し明るい紙）
+FIELD = "#FFFDF8"  # 入力欄の中
+BORDER = "#DDD4C4"  # 面の枠線・区切り線
+FIELD_BORDER = "#D6CCBA"  # 入力欄・ボタンの枠線
+RULE = "#CFC5B2"  # タイトル下の二重罫線
+BUTTON = "#EFE8DC"  # 通常ボタン
+BUTTON_HOVER = "#E6DDCD"
+BUTTON_PRESSED = "#DDD2BF"
+DISABLED = "#EEE8DD"  # 入力不可の欄
+ACCENT = "#3F5573"  # 藍（保存ボタン・チェック・フォーカス枠）
+ACCENT_HOVER = "#4A6385"
+ACCENT_PRESSED = "#33465F"
+ACCENT_TINT = "#E6EAF0"  # チェック欄にマウスを乗せたとき
+TEXT = "#33312C"  # 墨
+MUTED = "#6E675C"
+REQUIRED = "#B4553A"  # 必須の *（朱）
+HIGHLIGHT = "#F7EBC8"  # 保存先が変わったときの強調
 
 STATUS_COLORS = {
     "info": ACCENT,
-    "ok": "#2E7D32",
-    "warn": "#B26A00",
-    "error": "#C0392B",
+    "ok": "#4E6B55",
+    "warn": "#8F6420",
+    "error": "#A8432E",
 }
 STATUS_ICONS = {"info": "ℹ", "ok": "✓", "warn": "⚠", "error": "✕"}
 
@@ -84,8 +88,8 @@ def apply_theme(root: tk.Tk) -> Fonts:
     # 枠
     style.configure("TFrame", background=PAPER)
     style.configure("CardInner.TFrame", background=CARD)
-    style.configure("Header.TFrame", background=ACCENT)
-    style.configure("Status.TFrame", background=PAPER_DARK)
+    style.configure("Header.TFrame", background=PAPER)
+    style.configure("Status.TFrame", background=PAPER)
 
     # 文字
     style.configure("TLabel", background=PAPER, foreground=TEXT)
@@ -94,16 +98,16 @@ def apply_theme(root: tk.Tk) -> Fonts:
     style.configure("Required.TLabel", background=CARD, foreground=REQUIRED, font=fonts.bold)
     style.configure("Section.TLabel", background=CARD, foreground=ACCENT, font=fonts.bold)
     style.configure("Heading.TLabel", background=PAPER, foreground=MUTED, font=fonts.bold)
-    style.configure("Header.TLabel", background=ACCENT, foreground="#FFFFFF", font=fonts.title)
-    style.configure("HeaderSub.TLabel", background=ACCENT, foreground=ACCENT_SUB, font=fonts.small)
+    style.configure("Header.TLabel", background=PAPER, foreground=TEXT, font=fonts.title)
+    style.configure("HeaderSub.TLabel", background=PAPER, foreground=MUTED, font=fonts.small)
     style.configure("Folder.TLabel", background=PAPER, foreground=TEXT)
     style.configure("FolderHighlight.TLabel", background=HIGHLIGHT, foreground=TEXT)
     for kind, color in STATUS_COLORS.items():
-        style.configure(f"Status{kind}.TLabel", background=PAPER_DARK, foreground=color)
+        style.configure(f"Status{kind}.TLabel", background=PAPER, foreground=color)
 
     # 入力欄
-    field_opts = dict(fieldbackground=CARD, foreground=TEXT, bordercolor=BORDER,
-                      lightcolor=CARD, darkcolor=CARD, insertcolor=TEXT, padding=(4, 3))
+    field_opts = dict(fieldbackground=FIELD, foreground=TEXT, bordercolor=FIELD_BORDER,
+                      lightcolor=FIELD, darkcolor=FIELD, insertcolor=TEXT, padding=(4, 3))
     style.configure("TEntry", **field_opts)
     style.map("TEntry",
               fieldbackground=[("disabled", DISABLED)],
@@ -112,14 +116,14 @@ def apply_theme(root: tk.Tk) -> Fonts:
               lightcolor=[("focus", ACCENT)])
     style.configure("TCombobox", **field_opts, background=BUTTON, arrowcolor=TEXT)
     style.map("TCombobox",
-              fieldbackground=[("readonly", CARD), ("disabled", DISABLED)],
-              selectbackground=[("readonly", CARD)],
+              fieldbackground=[("readonly", FIELD), ("disabled", DISABLED)],
+              selectbackground=[("readonly", FIELD)],
               selectforeground=[("readonly", TEXT)],
               background=[("active", BUTTON_HOVER)],
               bordercolor=[("focus", ACCENT)],
               lightcolor=[("focus", ACCENT)])
     # プルダウンの一覧
-    root.option_add("*TCombobox*Listbox.background", CARD)
+    root.option_add("*TCombobox*Listbox.background", FIELD)
     root.option_add("*TCombobox*Listbox.foreground", TEXT)
     root.option_add("*TCombobox*Listbox.selectBackground", ACCENT)
     root.option_add("*TCombobox*Listbox.selectForeground", "#FFFFFF")
@@ -144,14 +148,14 @@ def apply_theme(root: tk.Tk) -> Fonts:
         style.map(name, background=[("active", bg)])
 
     # ボタン
-    style.configure("TButton", background=BUTTON, foreground=TEXT, bordercolor=BORDER,
+    style.configure("TButton", background=BUTTON, foreground=TEXT, bordercolor=FIELD_BORDER,
                     lightcolor=BUTTON, darkcolor=BUTTON, padding=(10, 3))
     style.map("TButton",
-              background=[("pressed", BORDER), ("active", BUTTON_HOVER)],
-              lightcolor=[("pressed", BORDER), ("active", BUTTON_HOVER)],
-              darkcolor=[("pressed", BORDER), ("active", BUTTON_HOVER)])
+              background=[("pressed", BUTTON_PRESSED), ("active", BUTTON_HOVER)],
+              lightcolor=[("pressed", BUTTON_PRESSED), ("active", BUTTON_HOVER)],
+              darkcolor=[("pressed", BUTTON_PRESSED), ("active", BUTTON_HOVER)])
     style.configure("Accent.TButton", background=ACCENT, foreground="#FFFFFF", bordercolor=ACCENT,
-                    lightcolor=ACCENT, darkcolor=ACCENT, font=fonts.button, padding=(26, 8))
+                    lightcolor=ACCENT, darkcolor=ACCENT, font=fonts.button, padding=(28, 8))
     style.map("Accent.TButton",
               background=[("pressed", ACCENT_PRESSED), ("active", ACCENT_HOVER)],
               lightcolor=[("pressed", ACCENT_PRESSED), ("active", ACCENT_HOVER)],
@@ -159,7 +163,7 @@ def apply_theme(root: tk.Tk) -> Fonts:
               bordercolor=[("focus", ACCENT_PRESSED)])
 
     # スクロールバー
-    style.configure("Vertical.TScrollbar", background=BUTTON, troughcolor=CARD, bordercolor=BORDER,
+    style.configure("Vertical.TScrollbar", background=BUTTON, troughcolor=CARD, bordercolor=FIELD_BORDER,
                     lightcolor=BUTTON, darkcolor=BUTTON, arrowcolor=MUTED)
     style.map("Vertical.TScrollbar", background=[("active", BUTTON_HOVER)])
 
@@ -188,8 +192,8 @@ def _check_images(root: tk.Misc, size: int, gap: int) -> dict[str, tk.PhotoImage
             y = round((y0 + (y1 - y0) * t) * size - thick / 2)
             on.put("#FFFFFF", to=(max(1, x), max(1, y), min(size - 1, x + thick), min(size - 1, y + thick)))
     return {
-        "off": box(MUTED, CARD),
-        "hover": box(ACCENT, "#E8EDF3"),
+        "off": box(MUTED, FIELD),
+        "hover": box(ACCENT, ACCENT_TINT),
         "on": on,
         "disabled": box(BORDER, DISABLED),
     }
@@ -220,7 +224,7 @@ def fit_text(font: tkfont.Font, text: str, width: int, keep: str = "tail") -> st
 
 def style_text_widget(text: tk.Text, fonts: Fonts) -> None:
     """複数行テキスト（tk.Text）を ttk の入力欄と同じ見た目にする"""
-    text.configure(background=CARD, foreground=TEXT, insertbackground=TEXT, font=fonts.base,
+    text.configure(background=FIELD, foreground=TEXT, insertbackground=TEXT, font=fonts.base,
                    relief="flat", borderwidth=0, highlightthickness=1,
-                   highlightbackground=BORDER, highlightcolor=ACCENT,
+                   highlightbackground=FIELD_BORDER, highlightcolor=ACCENT,
                    selectbackground=ACCENT, selectforeground="#FFFFFF", padx=4, pady=3)
