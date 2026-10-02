@@ -1,7 +1,7 @@
-"""画面デザイン「和紙」：色・フォント・ttk スタイルの定義
+"""画面デザイン「ペンスタンド」：色・フォント・ttk スタイルの定義
 
-温かいベージュの紙の地に墨色の文字。濃い帯は使わず、タイトルは文字と二重の細い罫線だけ。
-アクセント（保存ボタン・チェック・フォーカス枠）はくすんだ藍色。
+明るいグレーの台に白いメモ帳（入力欄のカード）。上部はペン立てのようなチャコールの帯に白いタイトルと
+水色の丸ラベル。メニュー下とステータス欄の上に水色の細い線、保存ボタンは薄い水色。
 色やフォントを変えるときはこのファイルだけを編集する。
 """
 
@@ -12,28 +12,38 @@ import tkinter.font as tkfont
 from dataclasses import dataclass
 from tkinter import ttk
 
-PAPER = "#F3EEE4"  # 背景（和紙）
-CARD = "#FAF7F1"  # 入力欄をまとめる面（少し明るい紙）
-FIELD = "#FFFDF8"  # 入力欄の中
-BORDER = "#DDD4C4"  # 面の枠線・区切り線
-FIELD_BORDER = "#D6CCBA"  # 入力欄・ボタンの枠線
-RULE = "#CFC5B2"  # タイトル下の二重罫線
-BUTTON = "#EFE8DC"  # 通常ボタン
-BUTTON_HOVER = "#E6DDCD"
-BUTTON_PRESSED = "#DDD2BF"
-DISABLED = "#EEE8DD"  # 入力不可の欄
-ACCENT = "#3F5573"  # 藍（保存ボタン・チェック・フォーカス枠）
-ACCENT_HOVER = "#4A6385"
-ACCENT_PRESSED = "#33465F"
-ACCENT_TINT = "#E6EAF0"  # チェック欄にマウスを乗せたとき
-TEXT = "#33312C"  # 墨
-MUTED = "#6E675C"
-REQUIRED = "#B4553A"  # 必須の *（朱）
-HIGHLIGHT = "#F7EBC8"  # 保存先が変わったときの強調
+PAPER = "#EAE8E8"  # 背景（明るいグレーの台）
+CARD = "#FBF9F7"  # 入力欄をまとめる面（白いメモ帳）
+FIELD = "#FFFFFF"  # 入力欄の中
+BORDER = "#D2CECE"  # 面の枠線・見出しの下線
+FIELD_BORDER = "#CFCBCB"  # 入力欄・ボタンの枠線
+LINE = "#9ABDD6"  # メニュー下・ステータス欄の上の水色の線
+BAND = "#3A3330"  # タイトル帯（チャコール）
+BAND_TEXT = "#FFFFFF"
+PILL = "#9ABDD6"  # タイトル横の丸ラベル
+PILL_TEXT = "#2B2725"
+BUTTON = "#EFEDED"  # 通常ボタン
+BUTTON_HOVER = "#E4E2E2"
+BUTTON_PRESSED = "#D9D6D6"
+DISABLED = "#F0EEEE"  # 入力不可の欄
+SAVE = "#B3CFE2"  # 保存ボタン（薄い水色）
+SAVE_HOVER = "#A6C6DC"
+SAVE_PRESSED = "#9ABDD6"
+SAVE_TEXT = "#2B2725"
+SAVE_BORDER = "#9ABDD6"
+ACCENT = "#3A3330"  # チェックの色・選択中の行
+FOCUS = "#6F9BBB"  # 入力欄のフォーカス枠
+FOCUS_TINT = "#E6EEF4"  # チェック欄にマウスを乗せたとき
+TEXT = "#4A4543"
+HEADING = "#4A4543"  # 見出し（測定条件・出力・保存先）
+MUTED = "#6A6563"
+REQUIRED = "#B4553A"  # 必須の *
+HIGHLIGHT = "#DCE8F1"  # 保存先が変わったときの強調
+STATUS_BG = "#F5F5F5"  # ステータス欄
 
 STATUS_COLORS = {
-    "info": ACCENT,
-    "ok": "#4E6B55",
+    "info": "#36607F",
+    "ok": "#3E6A50",
     "warn": "#8F6420",
     "error": "#A8432E",
 }
@@ -68,7 +78,7 @@ def _setup_fonts(root: tk.Misc) -> Fonts:
     return Fonts(
         base=tkfont.nametofont("TkDefaultFont", root=root),
         bold=tkfont.Font(root=root, family=family, size=size, weight="bold"),
-        title=tkfont.Font(root=root, family=family, size=13, weight="bold"),
+        title=tkfont.Font(root=root, family=family, size=15, weight="bold"),
         small=tkfont.Font(root=root, family=family, size=9),
         button=tkfont.Font(root=root, family=family, size=11, weight="bold"),
     )
@@ -82,28 +92,27 @@ def apply_theme(root: tk.Tk) -> Fonts:
 
     style.configure(".", background=PAPER, foreground=TEXT, font=fonts.base,
                     bordercolor=BORDER, lightcolor=PAPER, darkcolor=PAPER,
-                    troughcolor=PAPER, focuscolor=ACCENT,
+                    troughcolor=PAPER, focuscolor=FOCUS,
                     selectbackground=ACCENT, selectforeground="#FFFFFF")
 
     # 枠
     style.configure("TFrame", background=PAPER)
     style.configure("CardInner.TFrame", background=CARD)
-    style.configure("Header.TFrame", background=PAPER)
-    style.configure("Status.TFrame", background=PAPER)
+    style.configure("Band.TFrame", background=BAND)
+    style.configure("Status.TFrame", background=STATUS_BG)
 
     # 文字
     style.configure("TLabel", background=PAPER, foreground=TEXT)
     style.configure("Card.TLabel", background=CARD, foreground=TEXT)
     style.configure("CardMuted.TLabel", background=CARD, foreground=MUTED, font=fonts.small)
     style.configure("Required.TLabel", background=CARD, foreground=REQUIRED, font=fonts.bold)
-    style.configure("Section.TLabel", background=CARD, foreground=ACCENT, font=fonts.bold)
-    style.configure("Heading.TLabel", background=PAPER, foreground=MUTED, font=fonts.bold)
-    style.configure("Header.TLabel", background=PAPER, foreground=TEXT, font=fonts.title)
-    style.configure("HeaderSub.TLabel", background=PAPER, foreground=MUTED, font=fonts.small)
+    style.configure("Section.TLabel", background=CARD, foreground=HEADING, font=fonts.bold)
+    style.configure("Heading.TLabel", background=PAPER, foreground=HEADING, font=fonts.bold)
+    style.configure("Band.TLabel", background=BAND, foreground=BAND_TEXT, font=fonts.title)
     style.configure("Folder.TLabel", background=PAPER, foreground=TEXT)
     style.configure("FolderHighlight.TLabel", background=HIGHLIGHT, foreground=TEXT)
     for kind, color in STATUS_COLORS.items():
-        style.configure(f"Status{kind}.TLabel", background=PAPER, foreground=color)
+        style.configure(f"Status{kind}.TLabel", background=STATUS_BG, foreground=color)
 
     # 入力欄
     field_opts = dict(fieldbackground=FIELD, foreground=TEXT, bordercolor=FIELD_BORDER,
@@ -112,16 +121,16 @@ def apply_theme(root: tk.Tk) -> Fonts:
     style.map("TEntry",
               fieldbackground=[("disabled", DISABLED)],
               foreground=[("disabled", MUTED)],
-              bordercolor=[("focus", ACCENT)],
-              lightcolor=[("focus", ACCENT)])
+              bordercolor=[("focus", FOCUS)],
+              lightcolor=[("focus", FOCUS)])
     style.configure("TCombobox", **field_opts, background=BUTTON, arrowcolor=TEXT)
     style.map("TCombobox",
               fieldbackground=[("readonly", FIELD), ("disabled", DISABLED)],
               selectbackground=[("readonly", FIELD)],
               selectforeground=[("readonly", TEXT)],
               background=[("active", BUTTON_HOVER)],
-              bordercolor=[("focus", ACCENT)],
-              lightcolor=[("focus", ACCENT)])
+              bordercolor=[("focus", FOCUS)],
+              lightcolor=[("focus", FOCUS)])
     # プルダウンの一覧
     root.option_add("*TCombobox*Listbox.background", FIELD)
     root.option_add("*TCombobox*Listbox.foreground", TEXT)
@@ -154,13 +163,13 @@ def apply_theme(root: tk.Tk) -> Fonts:
               background=[("pressed", BUTTON_PRESSED), ("active", BUTTON_HOVER)],
               lightcolor=[("pressed", BUTTON_PRESSED), ("active", BUTTON_HOVER)],
               darkcolor=[("pressed", BUTTON_PRESSED), ("active", BUTTON_HOVER)])
-    style.configure("Accent.TButton", background=ACCENT, foreground="#FFFFFF", bordercolor=ACCENT,
-                    lightcolor=ACCENT, darkcolor=ACCENT, font=fonts.button, padding=(28, 8))
+    style.configure("Accent.TButton", background=SAVE, foreground=SAVE_TEXT, bordercolor=SAVE_BORDER,
+                    lightcolor=SAVE, darkcolor=SAVE, font=fonts.button, padding=(28, 8))
     style.map("Accent.TButton",
-              background=[("pressed", ACCENT_PRESSED), ("active", ACCENT_HOVER)],
-              lightcolor=[("pressed", ACCENT_PRESSED), ("active", ACCENT_HOVER)],
-              darkcolor=[("pressed", ACCENT_PRESSED), ("active", ACCENT_HOVER)],
-              bordercolor=[("focus", ACCENT_PRESSED)])
+              background=[("pressed", SAVE_PRESSED), ("active", SAVE_HOVER)],
+              lightcolor=[("pressed", SAVE_PRESSED), ("active", SAVE_HOVER)],
+              darkcolor=[("pressed", SAVE_PRESSED), ("active", SAVE_HOVER)],
+              bordercolor=[("focus", FOCUS)])
 
     # スクロールバー
     style.configure("Vertical.TScrollbar", background=BUTTON, troughcolor=CARD, bordercolor=FIELD_BORDER,
@@ -193,7 +202,7 @@ def _check_images(root: tk.Misc, size: int, gap: int) -> dict[str, tk.PhotoImage
             on.put("#FFFFFF", to=(max(1, x), max(1, y), min(size - 1, x + thick), min(size - 1, y + thick)))
     return {
         "off": box(MUTED, FIELD),
-        "hover": box(ACCENT, ACCENT_TINT),
+        "hover": box(FOCUS, FOCUS_TINT),
         "on": on,
         "disabled": box(BORDER, DISABLED),
     }
@@ -226,5 +235,20 @@ def style_text_widget(text: tk.Text, fonts: Fonts) -> None:
     """複数行テキスト（tk.Text）を ttk の入力欄と同じ見た目にする"""
     text.configure(background=FIELD, foreground=TEXT, insertbackground=TEXT, font=fonts.base,
                    relief="flat", borderwidth=0, highlightthickness=1,
-                   highlightbackground=FIELD_BORDER, highlightcolor=ACCENT,
+                   highlightbackground=FIELD_BORDER, highlightcolor=FOCUS,
                    selectbackground=ACCENT, selectforeground="#FFFFFF", padx=4, pady=3)
+
+
+def make_pill(parent: tk.Misc, text: str, font: tkfont.Font, background: str) -> tk.Canvas:
+    """角の丸いラベル（タイトル横の「評価条件メモ」）。background は置く場所の背景色"""
+    scale = max(1.0, parent.winfo_fpixels("1i") / 96.0)
+    pad_x, pad_y = round(12 * scale), round(3 * scale)
+    w = font.measure(text) + pad_x * 2
+    h = font.metrics("linespace") + pad_y * 2
+    canvas = tk.Canvas(parent, width=w, height=h, background=background, highlightthickness=0, borderwidth=0)
+    r = h / 2
+    canvas.create_oval(0, 0, h, h, fill=PILL, outline=PILL)
+    canvas.create_oval(w - h, 0, w, h, fill=PILL, outline=PILL)
+    canvas.create_rectangle(r, 0, w - r, h, fill=PILL, outline=PILL)
+    canvas.create_text(w / 2, h / 2, text=text, fill=PILL_TEXT, font=font)
+    return canvas

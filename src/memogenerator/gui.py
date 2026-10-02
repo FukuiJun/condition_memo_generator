@@ -353,21 +353,17 @@ class MemoGeneratorApp:
         outer.pack(fill="both", expand=True)
         self.outer = outer
 
-        # タイトル（文字＋二重の細い罫線。濃い帯は使わない）
-        header = ttk.Frame(outer, style="Header.TFrame", padding=(20, 12, 20, 0))
+        # タイトル（メニュー下の水色の線＋チャコールの帯に白い文字と水色の丸ラベル）
+        tk.Frame(outer, height=1, background=theme.LINE).pack(side="top", fill="x")
+        header = ttk.Frame(outer, style="Band.TFrame", padding=(20, 12, 20, 12))
         header.pack(side="top", fill="x")
-        ttk.Label(header, text=APP_NAME, style="Header.TLabel").pack(side="left")
-        ttk.Label(header, text="評価条件メモ", style="HeaderSub.TLabel").pack(side="left", padx=(12, 0),
-                                                                        pady=(4, 0))
-        rules = ttk.Frame(outer, padding=(20, 6, 20, 0))
-        rules.pack(side="top", fill="x")
-        for gap in (0, 2):
-            tk.Frame(rules, height=1, background=theme.RULE).pack(fill="x", pady=(gap, 0))
+        ttk.Label(header, text=APP_NAME, style="Band.TLabel").pack(side="left")
+        theme.make_pill(header, "評価条件メモ", self.fonts.small, theme.BAND).pack(side="left", padx=(12, 0))
 
-        # ステータス欄（最下部。上に細い区切り線）
+        # ステータス欄（最下部。上に水色の細い線）
         status_bar = ttk.Frame(outer, style="Status.TFrame", padding=(20, 6, 20, 7))
         status_bar.pack(side="bottom", fill="x")
-        tk.Frame(outer, height=1, background=theme.BORDER).pack(side="bottom", fill="x")
+        tk.Frame(outer, height=1, background=theme.LINE).pack(side="bottom", fill="x")
         self.status_bar = status_bar
         self.status_icon = ttk.Label(status_bar, text="", style="Statusinfo.TLabel", font=self.fonts.bold)
         self.status_icon.pack(side="left", padx=(0, 6))
@@ -417,8 +413,9 @@ class MemoGeneratorApp:
         card = tk.Frame(card_wrap, background=theme.CARD, borderwidth=0, highlightthickness=1,
                         highlightbackground=theme.BORDER, highlightcolor=theme.BORDER)
         card.pack(fill="both", expand=True)
-        self.card_title = ttk.Label(card, text="測定条件", style="Section.TLabel", padding=(12, 10, 12, 2))
+        self.card_title = ttk.Label(card, text="測定条件", style="Section.TLabel", padding=(12, 10, 12, 6))
         self.card_title.pack(side="top", anchor="w")
+        tk.Frame(card, height=1, background=theme.BORDER).pack(side="top", fill="x", padx=12, pady=(0, 6))
         scroll_area = ttk.Frame(card, style="CardInner.TFrame", padding=(0, 0, 0, 6))
         scroll_area.pack(side="top", fill="both", expand=True)
         self.canvas = tk.Canvas(scroll_area, highlightthickness=0, borderwidth=0, background=theme.CARD)

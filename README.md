@@ -251,7 +251,7 @@ zip を右クリック →「すべて展開」すると `MemoGenerator` フォ�
 | `src/memogenerator/output.py` | 条件メモ・条件履歴の生成と保存（ロールバック含む） |
 | `src/memogenerator/state.py` | 状態ファイル（前回値・入力履歴・前回保存先） |
 | `src/memogenerator/gui.py` | 画面（tkinter） |
-| `src/memogenerator/theme.py` | 画面デザイン「和紙」の色・フォント（見た目を変えるときはここだけ編集） |
+| `src/memogenerator/theme.py` | 画面デザイン「ペンスタンド」の色・フォント（見た目を変えるときはここだけ編集） |
 | `src/memogenerator/icon_data.py` | ウィンドウのアイコン画像（`tools/make_icon.py` が生成。直接編集しない） |
 | `assets/icon.svg`, `assets/icon-small.svg` | アプリアイコンの原画（24px 以下は small の方を使う） |
 | `assets/MemoGenerator.ico` | exe のアイコン（`tools/make_icon.py` が生成） |
