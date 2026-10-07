@@ -79,7 +79,7 @@ class GuiTest(unittest.TestCase):
         w["date"].set_raw("2026-09-28")
         w["time"].set_raw("14:30")
         w["program"].set_raw("ver1.2.0")
-        w["board"].set_raw("Rev.B")
+        w["board"].set_raw("USM")
         w["board_state"].set_raw({"筐体": False, "線出し": True, "シャント抵抗": True})
         w["test_summary"].set_raw("USB充電 定電流1A")
         w["datafile"].set_raw(str(self.folder / "20260928_charge_test.csv"))
@@ -131,6 +131,13 @@ class GuiTest(unittest.TestCase):
         summary = self.app.widgets["test_summary"]
         self.assertEqual(summary.label.cget("text"), "試験概要")
         self.assertEqual(list(summary.combo.cget("values")), [])
+        # 起動時の初期値：測定時刻・プログラム・バッテリは空欄、基板は USM、基板状態は未選択
+        w = self.app.widgets
+        self.assertEqual(w["program"].get_raw(), "")
+        self.assertEqual(w["board"].get_raw(), "USM")
+        self.assertEqual(list(w["board"].combo.cget("values")), ["USM"])
+        self.assertEqual(w["board_state"].get_raw(), {"筐体": False, "線出し": False, "シャント抵抗": False})
+        self.assertEqual(w["battery"].get_raw(), "")
 
     def test_ac08_output_format(self):
         self.assertTrue(self.app.csv_var.get())
@@ -160,9 +167,10 @@ class GuiTest(unittest.TestCase):
         self.app.save()
         name, _title, message = self.messages[-1]
         self.assertEqual(name, "showwarning")
-        for label in ["基板", "試験概要", "測定者"]:
+        for label in ["試験概要", "測定者"]:
             self.assertIn(label, message)
         self.assertNotIn("プログラム", message)
+        self.assertNotIn("基板", message)  # 基板は初期値 USM が入っている
         self.assertEqual(self.files(), [])
 
     def test_save_ctrl_s_and_restart(self):  # AC-02/03（画面経由）, AC-14, AC-20
@@ -181,7 +189,9 @@ class GuiTest(unittest.TestCase):
         w = self.app.widgets
         self.assertEqual(w["note"].get_raw(), "")
         self.assertEqual(w["datafile"].get_raw(), "")
-        self.assertEqual(w["program"].get_raw(), "ver1.2.0")
+        self.assertEqual(w["program"].get_raw(), "ver1.2.0")  # keep：保存後も残る
+        self.assertEqual(w["board"].get_raw(), "USM")
+        self.assertEqual(w["board_state"].get_raw(), {"筐体": False, "線出し": True, "シャント抵抗": True})
         self.assertTrue(self.app.txt_var.get())
         self.assertEqual(self.app.folder_var.get(), str(self.folder))
         self.assertEqual(list(w["program"].combo.cget("values")), ["ver1.2.0"])
@@ -192,11 +202,15 @@ class GuiTest(unittest.TestCase):
         # 再起動
         self.app = self.start()
         w = self.app.widgets
-        self.assertEqual(w["program"].get_raw(), "ver1.2.0")
+        # keep の項目は起動時に初期値へ戻る（候補には過去の入力が出る）
+        self.assertEqual(w["program"].get_raw(), "")
+        self.assertEqual(list(w["program"].combo.cget("values")), ["ver1.2.0"])
+        self.assertEqual(w["board"].get_raw(), "USM")
+        self.assertEqual(w["board_state"].get_raw(), {"筐体": False, "線出し": False, "シャント抵抗": False})
+        self.assertEqual(w["battery"].get_raw(), "")
         self.assertEqual(w["measurer"].get_raw(), "山田")
         self.assertEqual(w["test_summary"].get_raw(), "USB充電 定電流1A")
         self.assertEqual(list(w["test_summary"].combo.cget("values")), ["USB充電 定電流1A"])
-        self.assertEqual(w["board_state"].get_raw(), {"筐体": False, "線出し": True, "シャント抵抗": True})
         self.assertEqual(w["note"].get_raw(), "")
         self.assertEqual(w["datafile"].get_raw(), "")
         self.assertEqual(w["date"].get_raw(), date.today().isoformat())

@@ -71,6 +71,17 @@ def empty_raw(field: FieldDef) -> object:
     return ""
 
 
+def initial_raw(field: FieldDef) -> object:
+    """起動時・クリア時の値。default（初期値）があればそれ、無ければ空・未選択"""
+    if field.default is None:
+        return empty_raw(field)
+    if field.type == "select":
+        return {"choice": field.default, "other": ""}
+    if field.type == "checkgroup":
+        return {item: item in field.default for item in field.items}
+    return field.default
+
+
 def coerce_raw(field: FieldDef, value: object) -> object | None:
     """保存されていた値（state.json・再読み込み前の画面）を現在の項目定義に合わせる。
 

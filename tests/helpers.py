@@ -23,7 +23,7 @@ def example_raw(**overrides):
         "date": "2026-09-28",
         "time": "14:30",
         "program": "ver1.2.0",
-        "board": "Rev.B",
+        "board": "USM",
         "board_state": {"筐体": False, "線出し": True, "シャント抵抗": True},
         "battery": "バッテリA",
         "test_summary": "USB充電 定電流1A",

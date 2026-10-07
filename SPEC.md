@@ -75,14 +75,14 @@ exe と同じフォルダに置く。存在しない場合は起動時に下記�
     {"id": "date", "label": "日付", "type": "datetime", "required": true},
     {"id": "time", "label": "測定時刻", "type": "time"},
     {"id": "program", "label": "プログラム", "type": "combo",
-     "options": [], "history": true, "remember": true},
+     "options": [], "history": true, "keep": true},
     {"id": "board", "label": "基板", "type": "combo", "required": true,
-     "options": ["Rev.A", "Rev.B"], "history": true, "remember": true},
+     "options": ["USM"], "default": "USM", "history": true, "keep": true},
     {"id": "board_state", "label": "基板状態", "type": "checkgroup",
      "items": ["筐体", "線出し", "シャント抵抗"],
-     "on_text": "有", "off_text": "無", "separator": "、", "remember": true},
+     "on_text": "有", "off_text": "無", "separator": "、", "keep": true},
     {"id": "battery", "label": "バッテリ", "type": "combo",
-     "options": [], "history": true, "remember": true},
+     "options": [], "history": true, "keep": true},
     {"id": "test_summary", "label": "試験概要", "type": "combo", "required": true,
      "options": [], "history": true, "remember": true},
     {"id": "datafile", "label": "データファイル", "type": "datafile"},
@@ -113,6 +113,8 @@ exe と同じフォルダに置く。存在しない場合は起動時に下記�
 | type | ○ | - | 上表のいずれか |
 | required | | false | true なら空で保存不可（checkgroup には指定不可）|
 | remember | | false | true なら保存後も値を残し、次回起動時に復元する |
+| keep | | false | true なら保存後も値を残す（アプリを閉じるまで）。次回起動時は復元せず初期値にする。datetime には指定不可 |
+| default | | なし | 起動時（と保存後のクリア時）の初期値。remember の前回値があればそちらが優先。text・multiline・combo・time は文字列（time は HH:MM）、select は options か other_option の値、checkgroup はチェックする item 名の配列。datetime・datafile には指定不可 |
 | blank_lines_before | | 0 | .txt でこの項目の前に入れる空行数（0〜5）|
 
 設定ファイルの検証ルール（起動時・再読み込み時）:
@@ -130,7 +132,7 @@ exe と同じフォルダに置く。存在しない場合は起動時に下記�
 - 既定の設定での例：
 ```
 日付,測定時刻,プログラム,基板,基板状態,バッテリ,試験概要,データファイル,備考,測定者,メモファイル
-2026-09-28,14:30,ver1.2.0,Rev.B,筐体無、線出し有、シャント抵抗有,バッテリA,USB充電 定電流1A,20260928_charge_test.csv,"室温25℃
+2026-09-28,14:30,ver1.2.0,USM,筐体無、線出し有、シャント抵抗有,バッテリA,USB充電 定電流1A,20260928_charge_test.csv,"室温25℃
 負荷500mA",山田,20260928_charge_test_条件メモ.txt
 ```
 - 保存するファイルの決定（項目構成が変わったときの扱い）:
@@ -149,7 +151,7 @@ exe と同じフォルダに置く。存在しない場合は起動時に下記�
 日付：2026-09-28
 測定時刻：14:30
 プログラム：ver1.2.0
-基板：Rev.B
+基板：USM
 基板状態：筐体無、線出し有、シャント抵抗有
 バッテリ：バッテリA
 試験概要：USB充電 定電流1A
@@ -177,7 +179,7 @@ PC・Windows ユーザーごとに保持する。
 
 ### F-02: 前回値の復元
 - 入力：state.json
-- 処理：remember が true の項目に前回値をセット。datetime 型は常に起動日（with_time 時は起動時の現在時刻）。remember が false の項目は空。select の前回値が現在の options に無い場合は未選択。checkgroup は前回チェック状態を item 名で対応付け、新しい item は未チェック
+- 処理：remember が true の項目に前回値をセット。datetime 型は常に起動日（with_time 時は起動時の現在時刻）。前回値の無い項目・remember が false の項目は default（初期値）、default が無ければ空・未選択。select の前回値が現在の options に無い場合は未選択。checkgroup は前回チェック状態を item 名で対応付け、新しい item は未チェック
 - 出力：各欄の初期値
 - 異常時：state.json が無い・壊れている → 全欄空（datetime のみ今日の日付）で起動し、エラーは出さない（error.log には記録）
 
@@ -233,7 +235,7 @@ PC・Windows ユーザーごとに保持する。
   - F-07 → F-08 の順に実行。どちらかが失敗・キャンセルされた場合、その回に作成したファイルは削除し、追記前の状態に戻す（何も保存されなかった状態にする）
   - 成功したら state.json を更新（remember の値、history、保存先）
   - ステータス欄に「保存しました：<出力したファイル名をカンマ区切り>」を表示
-  - remember が false の項目をクリアし、datetime を今日の日付（with_time 時は現在時刻）に更新。出力形式・保存先は保持
+  - remember も keep も false の項目を初期値（default、無ければ空）に戻し、datetime を今日の日付（with_time 時は現在時刻）に更新。出力形式・保存先は保持
 - 異常時：state.json 書き込み失敗 → 保存は成功扱い、ステータス欄に警告表示、error.log に記録
 
 ### F-10: 設定ファイルの編集と再読み込み
@@ -247,7 +249,7 @@ PC・Windows ユーザーごとに保持する。
 日付          [2026-09-28 ][今日]
 測定時刻      [14:30 ][現在時刻] （任意・HH:MM）
 プログラム    [ver1.2.0        ▼]
-基板          [Rev.B           ▼]
+基板          [USM             ▼]
 基板状態      ☐筐体 ☑線出し ☑シャント抵抗
 バッテリ      [バッテリA       ▼]
 試験概要      [USB充電 定電流1A ▼]
@@ -309,7 +311,7 @@ PC・Windows ユーザーごとに保持する。
 | AC-11 | 同名の .txt がある状態で保存 → `_2` 付きで保存され、既存ファイルは変更されない | 自動 | F-07 |
 | AC-12 | 日付に `2026-02-30` → 入力チェックエラー | 自動 | F-06 |
 | AC-13 | 必須項目を空にして保存 → 空の項目 label がダイアログに列挙され、ファイルは何もできない | 手動 | F-06 |
-| AC-14 | 一度保存して再起動 → remember の項目が前回値、備考とデータファイルは空、日付は今日 | 手動 | F-02, F-09 |
+| AC-14 | 一度保存して再起動 → remember の項目が前回値、keep の項目（プログラム・基板・基板状態・バッテリ）は初期値（空・USM・未選択・空）、備考とデータファイルは空、日付は今日 | 手動 | F-02, F-09 |
 | AC-15 | プログラム欄に 11 種類の値を順に入れて保存 → 候補に最新 10 件が新しい順に出る | 自動 | F-09 |
 | AC-16 | settings.json に `{"id":"temp","label":"周囲温度","type":"text"}` を備考の前に追加して再読み込み → 画面・.txt・CSV ヘッダの同じ位置に「周囲温度」が出る。入力中の他項目の値は保持される | 手動＋自動（出力）| F-01, F-10 |
 | AC-17 | AC-16 の後、既存の条件履歴.csv があるフォルダに CSV 出力 → 確認ダイアログが出て、OK で `条件履歴_2.csv` が作成される。元の条件履歴.csv は変更されない | 自動＋手動 | F-08 |
@@ -369,4 +371,4 @@ PC・Windows ユーザーごとに保持する。
 | 1.3 | 2026-09-30 | 起動高速化のため配布形態を onefile から onedir（フォルダ形式）に変更（4章・10章・AC-21・Q-16）。アプリアイコンの背景を透明に |
 | 1.4 | 2026-09-30 | time 型を追加し、既定の項目に任意入力の「測定時刻」（HH:MM、［現在時刻］ボタン、空欄可）を日付の次に追加。5.2 の例・F-03/F-06・7章を更新 |
 | 1.5 | 2026-10-01 | 画面デザインを「和紙」（ベージュの紙の地・墨色の文字・藍のアクセント、濃い帯なし）に変更。機能・項目・出力は変更なし |
-| 1.6 | 2026-10-07 | 画面デザインを「ペンスタンド」（明るいグレーの地・チャコールのタイトル帯・水色のアクセント）に変更。既定の項目に任意入力の「バッテリ」（combo＋入力履歴）を基板状態の次に追加し、「プログラム」を任意入力に変更。5.2 の例・7章を更新 |
+| 1.6 | 2026-10-07 | 画面デザインを「ペンスタンド」（明るいグレーの地・チャコールのタイトル帯・水色のアクセント）に変更。既定の項目に任意入力の「バッテリ」（combo＋入力履歴）を基板状態の次に追加し、「プログラム」を任意入力に変更。項目の属性に default（初期値）と keep（保存後は残すが起動時は初期値）を追加し、プログラム・基板（初期値 USM、候補 USM）・基板状態・バッテリを keep に変更。5.2 の例・F-02/F-09・7章・AC-14 を更新 |

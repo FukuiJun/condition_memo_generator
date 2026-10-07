@@ -10,6 +10,7 @@ from memogenerator.settings import (
     SettingsError,
     load_settings,
     parse_settings,
+    validate_settings_data,
 )
 
 
@@ -35,11 +36,17 @@ class DefaultSettingsTest(unittest.TestCase):
                           "備考", "測定者"])
         self.assertFalse(s.field("program").required)  # 任意入力
         battery = s.field("battery")
-        self.assertEqual((battery.type, battery.options, battery.history, battery.required, battery.remember),
-                         ("combo", (), True, False, True))
+        self.assertEqual((battery.type, battery.options, battery.history, battery.required),
+                         ("combo", (), True, False))
         time_field = s.field("time")
         self.assertEqual((time_field.type, time_field.required, time_field.remember), ("time", False, False))
-        self.assertEqual(s.field("board").options, ("Rev.A", "Rev.B"))
+        board = s.field("board")
+        self.assertEqual((board.options, board.default, board.required), (("USM",), "USM", True))
+        # 保存後は残すが、起動時は初期値（前回値を復元しない）
+        for fid in ("program", "board", "board_state", "battery"):
+            self.assertEqual((s.field(fid).keep, s.field(fid).remember), (True, False), fid)
+        self.assertIsNone(s.field("program").default)
+        self.assertTrue(s.field("measurer").remember)
         self.assertFalse(s.field("date").with_time)  # 日付のみ
         self.assertEqual(s.field("board_state").items, ("筐体", "線出し", "シャント抵抗"))
         summary = s.field("test_summary")
@@ -143,6 +150,55 @@ class ValidationTest(unittest.TestCase):
                 data["fields"][idx][key] = value
                 errs = errors_of(data)
                 self.assertTrue(any(f"{idx + 1}番目の項目" in e and key in e for e in errs), errs)
+
+    def test_default_and_keep(self):
+        ok_cases = [
+            (2, "default", "ver1.0"),
+            (1, "default", "9:05"),
+            (4, "default", ["線出し"]),
+            (4, "keep", False),
+        ]
+        for idx, key, value in ok_cases:
+            with self.subTest(key=key, value=value):
+                data = base_data()
+                data["fields"][idx][key] = value
+                validate_settings_data(data)  # エラーにならない
+        bad_cases = [
+            (2, "default", 1, "文字列"),
+            (2, "default", "a\nb", "改行"),
+            (1, "default", "25:00", "HH:MM"),
+            (4, "default", "線出し", "配列"),
+            (4, "default", ["外枠"], "items にありません"),
+            (0, "default", "2026-01-01", "datetime"),
+            (0, "keep", True, "datetime"),
+            (7, "default", "a.csv", "datafile"),
+            (2, "keep", "yes", "keep"),
+        ]
+        for idx, key, value, word in bad_cases:
+            with self.subTest(key=key, value=value):
+                data = base_data()
+                data["fields"][idx][key] = value
+                errs = errors_of(data)
+                self.assertTrue(any(f"{idx + 1}番目の項目" in e and word in e for e in errs), errs)
+
+    def test_default_of_select(self):
+        data = json.loads(settings_with_select_text())
+        method = next(f for f in data["fields"] if f["id"] == "method")
+        method["default"] = "ワイヤレス充電"
+        s = validate_settings_data(data)
+        from memogenerator.values import initial_raw
+        self.assertEqual(initial_raw(s.field("method")), {"choice": "ワイヤレス充電", "other": ""})
+        method["default"] = "無い選択肢"
+        self.assertTrue(any("options にありません" in e for e in errors_of(data)))
+
+    def test_initial_raw(self):
+        from memogenerator.values import initial_raw
+        data = base_data()
+        data["fields"][4]["default"] = ["筐体"]
+        s = validate_settings_data(data)
+        self.assertEqual(initial_raw(s.field("board_state")), {"筐体": True, "線出し": False, "シャント抵抗": False})
+        self.assertEqual(initial_raw(s.field("board")), "USM")
+        self.assertEqual(initial_raw(s.field("program")), "")
 
     def test_required_not_allowed_on_checkgroup(self):
         data = base_data()

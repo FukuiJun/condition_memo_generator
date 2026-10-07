@@ -44,8 +44,9 @@ class HistoryTest(unittest.TestCase):
 
     def test_candidates_history_first_then_options(self):
         field = DEFAULT.field("board")
-        self.assertEqual(combo_candidates(field, ["Rev.C", "Rev.B"]), ["Rev.C", "Rev.B", "Rev.A"])
-        self.assertEqual(combo_candidates(field, []), ["Rev.A", "Rev.B"])
+        self.assertEqual(combo_candidates(field, ["Rev.C", "Rev.B"]), ["Rev.C", "Rev.B", "USM"])
+        self.assertEqual(combo_candidates(field, ["USM"]), ["USM"])
+        self.assertEqual(combo_candidates(field, []), ["USM"])
 
 
 class RememberTest(unittest.TestCase):
@@ -68,10 +69,11 @@ class RememberTest(unittest.TestCase):
     def test_ac14_remember_only(self):
         store = self.saved_store(example_raw())
         s = DEFAULT
-        self.assertEqual(store.remembered(s.field("program")), "ver1.2.0")
-        self.assertEqual(store.remembered(s.field("board_state")),
-                         {"筐体": False, "線出し": True, "シャント抵抗": True})
         self.assertEqual(store.remembered(s.field("test_summary")), "USB充電 定電流1A")
+        self.assertEqual(store.remembered(s.field("measurer")), "山田")
+        # keep の項目（保存後は残すが起動時は初期値）は前回値を復元しない
+        for fid in ("program", "board", "board_state", "battery"):
+            self.assertIsNone(store.remembered(s.field(fid)), fid)
         self.assertIsNone(store.remembered(s.field("note")))
         self.assertIsNone(store.remembered(s.field("datafile")))
         self.assertIsNone(store.remembered(s.field("date")))
@@ -93,8 +95,9 @@ class RememberTest(unittest.TestCase):
         self.assertEqual(store.remembered(s.field("method"))["choice"], "")
 
     def test_checkgroup_matched_by_item_name(self):
-        store = self.saved_store(example_raw())
+        store = self.saved_store(example_raw(), remembering_board_state())
         data = json.loads(DEFAULT_TEXT())
+        data["fields"][4]["remember"] = True
         data["fields"][4]["items"] = ["シャント抵抗", "新項目", "筐体"]
         s = parse_settings(json.dumps(data, ensure_ascii=False))
         self.assertEqual(store.remembered(s.field("board_state")),
@@ -106,7 +109,7 @@ class RememberTest(unittest.TestCase):
                                         ensure_ascii=False), encoding="utf-8")
         store = StateStore(self.path)
         store.load()
-        self.assertEqual(store.remembered(DEFAULT.field("board_state")),
+        self.assertEqual(store.remembered(remembering_board_state().field("board_state")),
                          {"筐体": False, "線出し": True, "シャント抵抗": False})
 
     def test_unknown_ids_are_kept(self):
@@ -124,25 +127,25 @@ class RememberTest(unittest.TestCase):
                 self.path.write_text(content, encoding="utf-8")
                 store = StateStore(self.path)
                 store.load()
-                self.assertIsNone(store.remembered(DEFAULT.field("program")))
+                self.assertIsNone(store.remembered(DEFAULT.field("measurer")))
                 self.assertEqual(store.history("program"), [])
                 self.assertEqual(store.last_folder, "")
 
     def test_legacy_state_is_read_when_new_is_missing(self):
         legacy = Path(self._tmp.name) / "EvalMemo" / "state.json"
         legacy.parent.mkdir(parents=True)
-        legacy.write_text(json.dumps({"values": {"program": "ver0.9"}, "last_folder": "C:/x"}),
+        legacy.write_text(json.dumps({"values": {"measurer": "ver0.9"}, "last_folder": "C:/x"}),
                           encoding="utf-8")
         store = StateStore(self.path, legacy)
         self.assertIsNone(store.load())
-        self.assertEqual(store.remembered(DEFAULT.field("program")), "ver0.9")
+        self.assertEqual(store.remembered(DEFAULT.field("measurer")), "ver0.9")
         store.save()  # 保存は新しい場所へ
         self.assertTrue(self.path.is_file())
         # 新しい state.json があれば旧ファイルは読まない
-        legacy.write_text(json.dumps({"values": {"program": "old"}}), encoding="utf-8")
+        legacy.write_text(json.dumps({"values": {"measurer": "old"}}), encoding="utf-8")
         store = StateStore(self.path, legacy)
         store.load()
-        self.assertEqual(store.remembered(DEFAULT.field("program")), "ver0.9")
+        self.assertEqual(store.remembered(DEFAULT.field("measurer")), "ver0.9")
 
     def test_missing_state_is_not_an_error(self):
         self.assertIsNone(StateStore(self.path).load())
@@ -152,6 +155,13 @@ def DEFAULT_TEXT():
     from memogenerator.settings import DEFAULT_SETTINGS_TEXT
 
     return DEFAULT_SETTINGS_TEXT
+
+
+def remembering_board_state():
+    """基板状態を remember（前回値を復元）にした設定。checkgroup の前回値の対応付けを確かめる用"""
+    data = json.loads(DEFAULT_TEXT())
+    data["fields"][4]["remember"] = True
+    return parse_settings(json.dumps(data, ensure_ascii=False))
 
 
 if __name__ == "__main__":

@@ -17,14 +17,14 @@ DEFAULT_SETTINGS_TEXT = """\
     {"id": "date", "label": "日付", "type": "datetime", "required": true},
     {"id": "time", "label": "測定時刻", "type": "time"},
     {"id": "program", "label": "プログラム", "type": "combo",
-     "options": [], "history": true, "remember": true},
+     "options": [], "history": true, "keep": true},
     {"id": "board", "label": "基板", "type": "combo", "required": true,
-     "options": ["Rev.A", "Rev.B"], "history": true, "remember": true},
+     "options": ["USM"], "default": "USM", "history": true, "keep": true},
     {"id": "board_state", "label": "基板状態", "type": "checkgroup",
      "items": ["筐体", "線出し", "シャント抵抗"],
-     "on_text": "有", "off_text": "無", "separator": "、", "remember": true},
+     "on_text": "有", "off_text": "無", "separator": "、", "keep": true},
     {"id": "battery", "label": "バッテリ", "type": "combo",
-     "options": [], "history": true, "remember": true},
+     "options": [], "history": true, "keep": true},
     {"id": "test_summary", "label": "試験概要", "type": "combo", "required": true,
      "options": [], "history": true, "remember": true},
     {"id": "datafile", "label": "データファイル", "type": "datafile"},
@@ -40,7 +40,7 @@ MEMO_COLUMN_LABEL = "メモファイル"
 
 FIELD_TYPES = ("text", "multiline", "combo", "select", "checkgroup", "datetime", "time", "datafile")
 
-COMMON_ATTRS = ("id", "label", "type", "required", "remember", "blank_lines_before")
+COMMON_ATTRS = ("id", "label", "type", "required", "remember", "keep", "default", "blank_lines_before")
 
 TYPE_ATTRS: dict[str, tuple[str, ...]] = {
     "text": (),
@@ -56,6 +56,7 @@ TYPE_ATTRS: dict[str, tuple[str, ...]] = {
 TOP_LEVEL_ATTRS = ("history_csv_name", "fields")
 
 _ID_RE = re.compile(r"^[A-Za-z0-9_]+$")
+_TIME_DEFAULT_RE = re.compile(r"^([01]?\d|2[0-3]):[0-5]\d$")
 _INVALID_FILENAME_CHARS = set('<>:"/\\|?*')
 _RESERVED_FILENAMES = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {
     f"LPT{i}" for i in range(1, 10)
@@ -71,6 +72,10 @@ class FieldDef:
     type: str
     required: bool = False
     remember: bool = False
+    # 保存後も値を残す（次回起動時は復元せず初期値に戻る）
+    keep: bool = False
+    # 起動時・クリア時の初期値（checkgroup はチェックする item 名の tuple）。None は空・未選択
+    default: str | tuple[str, ...] | None = None
     blank_lines_before: int = 0
     # multiline
     rows: int = 5
@@ -199,9 +204,17 @@ def _validate_field(index: int, raw: object, errors: list[str]) -> FieldDef | No
                 err(f"未知の属性 {key} があります（type {ftype} では使えません）")
 
     # 共通属性
-    for key in ("required", "remember"):
+    for key in ("required", "remember", "keep"):
         if key in raw and not _is_bool(raw[key]):
             err(f"{key} は true または false で指定してください")
+    if ftype == "datetime":
+        for key in ("keep", "default"):
+            if key in raw:
+                err(f"datetime には {key} を指定できません（常に今日の日付）")
+    if ftype == "datafile" and "default" in raw:
+        err("datafile には default を指定できません")
+    if "default" in raw and type_known and ftype not in ("datetime", "datafile"):
+        _validate_default(ftype, raw, err)
     if ftype == "checkgroup" and "required" in raw:
         err("checkgroup には required を指定できません")
     if "blank_lines_before" in raw:
@@ -242,14 +255,41 @@ def _validate_field(index: int, raw: object, errors: list[str]) -> FieldDef | No
         return None
 
     kwargs: dict = {"id": fid, "label": label, "type": ftype}
-    for key in ("required", "remember", "blank_lines_before", "rows", "history",
+    for key in ("required", "remember", "keep", "blank_lines_before", "rows", "history",
                 "other_option", "with_time", "on_text", "off_text", "separator"):
         if key in raw:
             kwargs[key] = raw[key]
     for key in ("options", "items"):
         if key in raw:
             kwargs[key] = tuple(raw[key])
+    if "default" in raw:
+        kwargs["default"] = tuple(raw["default"]) if ftype == "checkgroup" else raw["default"]
     return FieldDef(**kwargs)
+
+
+def _validate_default(ftype: str, raw: dict, err) -> None:
+    """default（初期値）の形式を type に合わせて確かめる"""
+    v = raw["default"]
+    if ftype == "checkgroup":
+        items = raw.get("items")
+        if not _is_str_list(v):
+            err("checkgroup の default はチェックする item 名の配列で指定してください")
+        elif _is_str_list(items):
+            unknown = [x for x in v if x not in items]
+            if unknown:
+                err(f"default の「{'」「'.join(unknown)}」が items にありません")
+        return
+    if not isinstance(v, str):
+        err("default は文字列で指定してください")
+        return
+    if ftype in ("text", "combo", "time") and ("\n" in v or "\r" in v):
+        err("default に改行は使えません")
+    elif ftype == "time" and v.strip() and _TIME_DEFAULT_RE.match(v.strip()) is None:
+        err("time の default は HH:MM 形式で指定してください")
+    elif ftype == "select" and v:
+        options = raw.get("options") if _is_str_list(raw.get("options")) else []
+        if v not in options and v != raw.get("other_option"):
+            err(f"default「{v}」が options にありません")
 
 
 def validate_settings_data(data: object) -> Settings:

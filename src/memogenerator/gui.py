@@ -14,7 +14,7 @@ from .errorlog import log_error
 from .output import SaveCancelled, SaveError, save_outputs
 from .settings import FieldDef, Settings, SettingsError, read_settings_file, write_default_settings
 from .state import StateStore, combo_candidates
-from .values import (coerce_raw, datafile_name, empty_raw, now_text, now_time_text, output_values,
+from .values import (coerce_raw, datafile_name, empty_raw, initial_raw, now_text, now_time_text, output_values,
                      validate_input)
 
 WINDOW_WIDTH = 600  # 論理ピクセル（96 dpi 換算）
@@ -52,7 +52,7 @@ class FieldWidget:
         raise NotImplementedError
 
     def clear(self) -> None:
-        self.set_raw(empty_raw(self.field))
+        self.set_raw(initial_raw(self.field))
 
     def refresh_candidates(self) -> None:
         pass
@@ -443,7 +443,7 @@ class MemoGeneratorApp:
         if field.type == "datetime":
             return now_text(field.with_time)
         remembered = self.state.remembered(field)
-        return remembered if remembered is not None else empty_raw(field)
+        return remembered if remembered is not None else initial_raw(field)
 
     def _restore_initial_values(self):
         for f in self.settings.fields:
@@ -654,7 +654,7 @@ class MemoGeneratorApp:
             w.refresh_candidates()
             if f.type == "datetime":
                 w.clear()  # 今日の日付（with_time なら現在時刻）に更新
-            elif not f.remember:
+            elif not (f.remember or f.keep):
                 w.clear()
 
     # ------------------------------------------------------------ メニュー（F-10）
