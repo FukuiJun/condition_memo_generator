@@ -31,8 +31,12 @@ class DefaultSettingsTest(unittest.TestCase):
         s = parse_settings(DEFAULT_SETTINGS_TEXT)
         self.assertEqual(s.history_csv_name, "条件履歴")
         self.assertEqual([f.label for f in s.fields],
-                         ["日付", "測定時刻", "プログラム", "基板", "基板状態", "試験概要", "データファイル", "備考",
-                          "測定者"])
+                         ["日付", "測定時刻", "プログラム", "基板", "基板状態", "バッテリ", "試験概要", "データファイル",
+                          "備考", "測定者"])
+        self.assertFalse(s.field("program").required)  # 任意入力
+        battery = s.field("battery")
+        self.assertEqual((battery.type, battery.options, battery.history, battery.required, battery.remember),
+                         ("combo", (), True, False, True))
         time_field = s.field("time")
         self.assertEqual((time_field.type, time_field.required, time_field.remember), ("time", False, False))
         self.assertEqual(s.field("board").options, ("Rev.A", "Rev.B"))
@@ -111,8 +115,8 @@ class ValidationTest(unittest.TestCase):
         data = base_data()
         data["fields"].append({"type": "text"})
         errs = errors_of(data)
-        self.assertTrue(any("10番目の項目" in e and "id" in e for e in errs))
-        self.assertTrue(any("10番目の項目" in e and "label" in e for e in errs))
+        self.assertTrue(any("11番目の項目" in e and "id" in e for e in errs))
+        self.assertTrue(any("11番目の項目" in e and "label" in e for e in errs))
 
     def test_bad_id_chars(self):
         data = base_data()
@@ -126,9 +130,9 @@ class ValidationTest(unittest.TestCase):
             (2, "options", "Rev.A"),
             (2, "options", [1, 2]),
             (2, "history", "true"),
-            (7, "rows", "5"),
-            (8, "blank_lines_before", 6),
-            (8, "blank_lines_before", True),
+            (8, "rows", "5"),
+            (9, "blank_lines_before", 6),
+            (9, "blank_lines_before", True),
             (4, "items", []),
             (4, "separator", 1),
             (0, "with_time", "yes"),
@@ -198,7 +202,7 @@ class LoadSettingsTest(unittest.TestCase):
             result = load_settings(path)
             self.assertTrue(result.created)
             self.assertEqual(result.errors, [])
-            self.assertEqual(len(result.settings.fields), 9)
+            self.assertEqual(len(result.settings.fields), 10)
             self.assertEqual(path.read_text(encoding="utf-8"), DEFAULT_SETTINGS_TEXT)
 
     def test_invalid_file_falls_back_and_is_not_overwritten(self):  # AC-18（起動時の動作）
@@ -211,7 +215,7 @@ class LoadSettingsTest(unittest.TestCase):
             result = load_settings(path)
             self.assertFalse(result.created)
             self.assertTrue(result.errors)
-            self.assertEqual(len(result.settings.fields), 9)
+            self.assertEqual(len(result.settings.fields), 10)
             self.assertEqual(path.read_text(encoding="utf-8"), text)
 
     def test_bom_is_accepted(self):

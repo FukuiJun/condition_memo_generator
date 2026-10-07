@@ -25,6 +25,7 @@ def example_raw(**overrides):
         "program": "ver1.2.0",
         "board": "Rev.B",
         "board_state": {"筐体": False, "線出し": True, "シャント抵抗": True},
+        "battery": "バッテリA",
         "test_summary": "USB充電 定電流1A",
         "datafile": r"C:\eval\20260928\20260928_charge_test.csv",
         "note": "室温25℃\n負荷500mA",

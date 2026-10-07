@@ -18,6 +18,7 @@ EXPECTED_TXT = (
     "プログラム：ver1.2.0\r\n"
     "基板：Rev.B\r\n"
     "基板状態：筐体無、線出し有、シャント抵抗有\r\n"
+    "バッテリ：バッテリA\r\n"
     "試験概要：USB充電 定電流1A\r\n"
     "データファイル：20260928_charge_test.csv\r\n"
     "備考：室温25℃\r\n"
@@ -27,8 +28,8 @@ EXPECTED_TXT = (
     "測定者：山田\r\n"
 ).encode("utf-8")
 
-EXPECTED_HEADER = "日付,測定時刻,プログラム,基板,基板状態,試験概要,データファイル,備考,測定者,メモファイル\r\n"
-EXPECTED_ROW = ('2026-09-28,14:30,ver1.2.0,Rev.B,筐体無、線出し有、シャント抵抗有,USB充電 定電流1A,'
+EXPECTED_HEADER = "日付,測定時刻,プログラム,基板,基板状態,バッテリ,試験概要,データファイル,備考,測定者,メモファイル\r\n"
+EXPECTED_ROW = ('2026-09-28,14:30,ver1.2.0,Rev.B,筐体無、線出し有、シャント抵抗有,バッテリA,USB充電 定電流1A,'
                 '20260928_charge_test.csv,"室温25℃\r\n負荷500mA",山田,20260928_charge_test_条件メモ.txt\r\n')
 
 
@@ -118,7 +119,7 @@ class CsvTest(TempDirTest):
             rows = list(csv.reader(fp))
         self.assertEqual(len(rows), 4)
         self.assertEqual(rows[0][-1], "メモファイル")
-        self.assertEqual(rows[1][7], "室温25℃\r\n負荷500mA")
+        self.assertEqual(rows[1][8], "室温25℃\r\n負荷500mA")
         self.assertEqual(self.files(), ["条件履歴.csv"])
         self.assertEqual((self.dir / "条件履歴.csv").read_bytes().count(BOM), 1)
 
@@ -160,7 +161,7 @@ class CsvTest(TempDirTest):
         self.assertEqual(names, ["条件履歴_2.csv"])
         self.assertEqual((self.dir / "条件履歴.csv").read_bytes(), original)
         header = (self.dir / "条件履歴_2.csv").read_bytes().decode("utf-8-sig").split("\r\n")[0]
-        self.assertEqual(header, "日付,測定時刻,プログラム,基板,基板状態,試験概要,データファイル,"
+        self.assertEqual(header, "日付,測定時刻,プログラム,基板,基板状態,バッテリ,試験概要,データファイル,"
                                  "周囲温度,備考,測定者,メモファイル")
         # 2回目以降は一致する _2 に確認なしで追記
         self.save(raw=example_raw(temp="26℃"), settings=settings)
@@ -352,7 +353,12 @@ class ValidationTest(TempDirTest):
         raw = example_raw(program="", board=" ", test_summary="", measurer="")
         errs = self.check(raw)
         labels = [e.split("：")[0] for e in errs]
-        self.assertEqual(labels, ["プログラム", "基板", "試験概要", "測定者"])
+        self.assertEqual(labels, ["基板", "試験概要", "測定者"])
+
+    def test_program_and_battery_optional(self):
+        self.assertEqual(self.check(example_raw(program="", battery="")), [])
+        values = output_values(DEFAULT, example_raw(program="", battery=" "))
+        self.assertEqual((values["program"], values["battery"]), ("", ""))
 
     def test_folder_and_format(self):
         self.assertEqual(self.check(example_raw(), folder=""), ["保存先：フォルダが選択されていません"])

@@ -101,7 +101,14 @@ class GuiTest(unittest.TestCase):
                          [(256, 256), (48, 48), (32, 32), (16, 16)])
         program = self.app.widgets["program"]
         self.assertEqual(program.label.cget("text"), "プログラム")
-        self.assertEqual(program.required_mark.cget("text"), " *")  # 必須の印
+        self.assertIsNone(program.required_mark)  # 任意入力
+        self.assertEqual(self.app.widgets["board"].required_mark.cget("text"), " *")  # 必須の印
+        # バッテリ：任意入力、基板状態の次
+        battery = self.app.widgets["battery"]
+        self.assertEqual(battery.label.cget("text"), "バッテリ")
+        self.assertIsNone(battery.required_mark)
+        ids = list(self.app.widgets)
+        self.assertEqual(ids[ids.index("board_state") + 1], "battery")
         self.assertEqual(self.app.widgets["board_state"].label.cget("text"), "基板状態")
         self.assertIsNone(self.app.widgets["board_state"].required_mark)
         # 日付：今日の日付だけが入り、ボタンは［今日］
@@ -153,8 +160,9 @@ class GuiTest(unittest.TestCase):
         self.app.save()
         name, _title, message = self.messages[-1]
         self.assertEqual(name, "showwarning")
-        for label in ["プログラム", "基板", "試験概要", "測定者"]:
+        for label in ["基板", "試験概要", "測定者"]:
             self.assertIn(label, message)
+        self.assertNotIn("プログラム", message)
         self.assertEqual(self.files(), [])
 
     def test_save_ctrl_s_and_restart(self):  # AC-02/03（画面経由）, AC-14, AC-20
@@ -242,7 +250,7 @@ class GuiTest(unittest.TestCase):
         self.app.reload_settings()
         self.assertEqual(self.messages[-1][0], "showerror")
         self.assertIn("未知の種類", self.messages[-1][2])
-        self.assertEqual(len(self.app.widgets), 9)
+        self.assertEqual(len(self.app.widgets), 10)
         self.assertEqual(self.app.widgets["program"].get_raw(), "ver1.2.0")
 
 
